@@ -58,8 +58,6 @@ export interface Parsed {
   [key: string]: { type: string, default: any, name: string, cleanName: string }
 }
 
-
-
 export class CliParser<T extends Array<ElemType>> {
   
   options: T;
@@ -67,11 +65,11 @@ export class CliParser<T extends Array<ElemType>> {
   
   constructor(o: T) {
     this.options = o;
-    for(let i = 0; i < o.length; i++) {
+    for (let i = 0; i < o.length; i++) {
       const v = o[i];
       if ('short' in v) {
         assert(typeof v.short === 'string', '"short" property must be a string.');
-        assert(v.short && v.short.length  === 1, '"short" string must be one character in length.');
+        assert(v.short && v.short.length === 1, '"short" string must be one character in length.');
       }
     }
   }
@@ -148,12 +146,17 @@ export class CliParser<T extends Array<ElemType>> {
       
       if (a.startsWith('--')) {
         longOpt = nameHash[clean];
+        
+        if (!longOpt) {
+          throw new Error('Could not find option with name: ' + a);
+        }
+        
         if (longOpt.type === Type.Boolean || longOpt.type === Type.ArrayOfBoolean) {
           ret[longOpt.name] = true;
         }
         else {
           prev = longOpt;
-          if(!args[i+1]){
+          if (!args[i + 1]) {
             throw new Error('Not enough arguments to satisfy:' + JSON.stringify(longOpt));
           }
         }
@@ -175,10 +178,10 @@ export class CliParser<T extends Array<ElemType>> {
           const t = shortOpts[k];
           
           if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
-            if(moreThanOne === true){
+            if (moreThanOne === true) {
               throw new Error('You can only group boolean options, this is a problem => ' + a);
             }
-            if(!args[i+1]){
+            if (!args[i + 1]) {
               throw new Error('Not enough arguments to satisfy:' + JSON.stringify(t));
             }
           }
@@ -206,9 +209,11 @@ export class CliParser<T extends Array<ElemType>> {
         
       }
       
-      prev = longOpt || Object.values(shortOpts)[0];
-      console.log('prev:', prev);
-      
+      prev = null;
+      const c = Object.values(shortOpts)[0];
+      if (c && c.type !== Type.Boolean && c.type !== Type.ArrayOfBoolean) {
+        prev = c;
+      }
     }
     
     return {
@@ -220,13 +225,19 @@ export class CliParser<T extends Array<ElemType>> {
 
 const p = new CliParser(asOptions([
   {
-    name: 'foo:3',
+    name: 'foo',
     short: 'a',
     type: Type.Boolean
   },
   {
     name: 'zoomBar',
     type: Type.String
+  },
+  
+  {
+    name: 'aaa',
+    short: 'b',
+    type: Type.Boolean
   },
   
   {
