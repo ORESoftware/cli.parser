@@ -13,26 +13,32 @@ type TypeMapping = {
   Boolean: boolean,
   String: string,
   Number: number,
-  ArrayOfString: Array<string>,
   Integer: number,
+  ArrayOfString: Array<string>,
   ArrayOfBoolean: Array<boolean>,
   ArrayOfNumber: Array<number>,
+  ArrayOfInteger: Array<number>,
   JSON: any,
-  CommaSeparatedString: Array<string>,
-  ColonSeparatedString: Array<string>
+  SeparatedStrings: Array<string>,
+  SeparatedNumbers: Array<string>,
+  SeparatedIntegers: Array<string>,
+  SeparatedBooleans: Array<string>
 }
 
 export enum Type {
   Boolean = 'Boolean',
   String = 'String',
   Number = 'Number',
+  Integer = 'Integer',
   ArrayOfString = 'ArrayOfString',
   ArrayOfBoolean = 'ArrayOfBoolean',
-  Integer = 'Integer',
+  ArrayOfNumber = 'ArrayOfNumber',
   ArrayOfInteger = 'ArrayOfInteger',
   JSON = 'JSON',
-  CommaSeparatedString = 'CommaSeparatedString',
-  ColonSeparatedString = 'ColonSeparatedString'
+  SeparatedStrings = 'SeparatedStrings',
+  SeparatedNumbers = 'SeparatedNumbers',
+  SeparatedIntegers = 'SeparatedIntegers',
+  SeparatedBooleans = 'SeparatedIntegers'
 }
 
 // const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
@@ -43,10 +49,12 @@ export enum Type {
 
 export interface ElemType {
   name: string,
-  alt?: Array<string>
+  alt?: string | Array<string>
   short?: string,
   type: keyof TypeMapping,
-  default?: any
+  default?: any,
+  separator?: string,
+  env?: string | Array<string>
 }
 
 export const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
@@ -62,14 +70,18 @@ export class CliParser<T extends Array<ElemType>> {
   
   options: T;
   opts: OptionsToType<T>;
+  static arrays = [
+    Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger,
+    Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers
+  ];
   
   constructor(o: T) {
     this.options = o;
     for (let i = 0; i < o.length; i++) {
       const v = o[i];
-      if ('short' in v) {
+      if (v['short']) {
         assert(typeof v.short === 'string', '"short" property must be a string.');
-        assert(v.short && v.short.length === 1, '"short" string must be one character in length.');
+        assert(v.short.length === 1, '"short" string must be one character in length.');
       }
     }
   }
@@ -107,6 +119,14 @@ export class CliParser<T extends Array<ElemType>> {
     const ret = {} as { [key: string]: any };
     const values: Array<string> = [];
     
+    this.options.forEach(v => {
+      if (CliParser.arrays.includes(<Type>v.type)) {
+        ret[v.name] = [];
+      }
+    });
+    
+    console.log('ret prepped:', ret);
+    
     const nameHash = <Parsed>{};
     const shortNameHash = <Parsed>{};
     
@@ -127,14 +147,20 @@ export class CliParser<T extends Array<ElemType>> {
     for (let i = 0; i < args.length; i++) {
       
       const a = args[i];
-      const clean = this.getCleanOpt(a);
       
       if (prev) {
         const name = prev.name;
-        ret[name] = a;
+        if (CliParser.arrays.includes(<Type>prev.type)) {
+          ret[name].push(a);
+        }
+        else {
+          ret[name] = a;
+        }
         prev = null;
         continue;
       }
+      
+      const clean = this.getCleanOpt(a);
       
       if (!a.startsWith('-')) {
         values.push(a);
@@ -151,8 +177,11 @@ export class CliParser<T extends Array<ElemType>> {
           throw new Error('Could not find option with name: ' + a);
         }
         
-        if (longOpt.type === Type.Boolean || longOpt.type === Type.ArrayOfBoolean) {
+        if (longOpt.type === Type.Boolean) {
           ret[longOpt.name] = true;
+        }
+        else if(longOpt.type === Type.ArrayOfBoolean){
+          ret[longOpt.name].push(true);
         }
         else {
           prev = longOpt;
@@ -169,10 +198,8 @@ export class CliParser<T extends Array<ElemType>> {
         shortOpts = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
         
         const keys = Object.keys(shortOpts);
-        
-        console.log('keys:', keys);
-        
         let moreThanOne = false;
+        
         keys.forEach(k => {
           
           const t = shortOpts[k];
@@ -200,8 +227,11 @@ export class CliParser<T extends Array<ElemType>> {
           
           const originalName = longNameHashVal.name;
           
-          if (shortHashVal.type === Type.Boolean || shortHashVal.type === Type.ArrayOfBoolean) {
+          if (shortHashVal.type === Type.Boolean) {
             ret[originalName] = true;
+          }
+          else if(shortHashVal.type === Type.ArrayOfBoolean){
+            ret[originalName].push(true);
           }
           
           moreThanOne = true;
@@ -225,19 +255,20 @@ export class CliParser<T extends Array<ElemType>> {
 
 const p = new CliParser(asOptions([
   {
-    name: 'foo',
+    name: 'aaa',
     short: 'a',
     type: Type.Boolean
   },
+  
   {
     name: 'zoomBar',
     type: Type.String
   },
   
   {
-    name: 'aaa',
+    name: 'bbb',
     short: 'b',
-    type: Type.Boolean
+    type: Type.ArrayOfBoolean
   },
   
   {
@@ -256,7 +287,8 @@ const p = new CliParser(asOptions([
 
 const {opts, values} = p.parse();
 
-console.log(opts, values);
+console.log('opts:', opts);
+console.log('values:', values);
 
 
 
