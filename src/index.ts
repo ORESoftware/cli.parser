@@ -2,8 +2,11 @@
 
 // https://stackoverflow.com/questions/29775830/how-to-implement-a-typescript-decorator
 
+// https://stackoverflow.com/questions/52175508/conditional-types-with-typescript
+
 import * as assert from 'assert';
 import chalk from 'chalk';
+import {getTable} from './table';
 
 export const r2gSmokeTest = function () {
   // r2g command line app uses this exported function
@@ -55,7 +58,8 @@ export interface ElemType {
   type: keyof TypeMapping,
   default?: any,
   separator?: string,
-  env?: string | Array<string>
+  env?: string | Array<string>,
+  help?: string
 }
 
 export const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
@@ -79,7 +83,7 @@ export class CliParser<T extends Array<ElemType>> {
   static separators = [Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers];
   static arrays = [Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger];
   
-  allowUnknown = true;
+  allowUnknown = false;
   
   constructor(o: T) {
     this.options = o;
@@ -104,11 +108,20 @@ export class CliParser<T extends Array<ElemType>> {
       
       const elem = v[i];
       
+      if (elem.startsWith('–')) {
+        throw 'Your program has an "en-dash" instead of a hyphen - .';
+      }
+      
+      if (elem.startsWith('—')) {
+        throw 'Your program has an "em-dash" instead of a hyphen - .';
+      }
+      
       if (elem.startsWith('-')) {
         const index = elem.indexOf('=');
         if (index > -1) {
           const first = elem.slice(0, index).trim();
           const second = elem.slice(index + 1).trim();
+          
           if (first.length < 1 || second.length < 1) {
             throw chalk.magenta('Malformed expression involving equals (=) sign, see: ' + elem);
           }
@@ -156,14 +169,6 @@ export class CliParser<T extends Array<ElemType>> {
     for (let i = 0; i < args.length; i++) {
       
       const a = args[i];
-      
-      if(a.startsWith('–')){
-        throw 'Your program has an "en-dash" instead of a hyphen - / --.';
-      }
-  
-      if(a.startsWith('—')){
-        throw 'Your program has an "em-dash" instead of a hyphen - / --.';
-      }
       
       if (prev) {
         
@@ -258,13 +263,13 @@ export class CliParser<T extends Array<ElemType>> {
         const t = shortOpts[k];
         
         if (!t) {
+          
           if (this.allowUnknown) {
             values.push(a);
             break;
           }
-          else {
-            throw chalk.magenta('No short name for letter: ' + k);
-          }
+          
+          throw chalk.magenta('No short name for letter: ' + k);
         }
         
         if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
@@ -310,7 +315,7 @@ export class CliParser<T extends Array<ElemType>> {
   }
 }
 
-const p = new CliParser(asOptions([
+const options = asOptions([
   {
     name: 'aaa',
     short: 'a',
@@ -347,13 +352,19 @@ const p = new CliParser(asOptions([
     type: Type.String
   }
 
-]));
+]);
+
+const p = new CliParser(options);
 
 const {opts, values} = p.parse();
 
 console.log('opts:', opts);
 console.log('values:', values);
 
+
+const table = getTable(options);
+
+console.log(table.toString());
 
 
 

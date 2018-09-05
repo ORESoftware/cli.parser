@@ -30,10 +30,14 @@
   },
   "homepage": "https://github.com/ORESoftware/typescript-library-skeleton#readme",
   "dependencies": {
-    "chalk": "^2.4.1"
+    "chalk": "^2.4.1",
+    "cli-table2": "^0.2.0",
+    "table": "^5.0.2"
   },
   "devDependencies": {
+    "@types/cli-table2": "^0.2.1",
     "@types/core-js": "^0.9.46",
-    "@types/node": "^9.6.2"
+    "@types/node": "^9.6.2",
+    "@types/table": "^4.0.5"
   }
 }
