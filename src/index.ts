@@ -77,9 +77,7 @@ export class CliParser<T extends Array<ElemType>> {
   opts: OptionsToType<T>;
   
   static separators = [Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers];
-  static arrays = [
-    Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger
-  ];
+  static arrays = [Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger];
   
   allowUnknown = true;
   
@@ -87,7 +85,7 @@ export class CliParser<T extends Array<ElemType>> {
     this.options = o;
     for (let i = 0; i < o.length; i++) {
       const v = o[i];
-      if (v['short']) {
+      if (v.short) {
         assert(typeof v.short === 'string', '"short" property must be a string.');
         assert(v.short.length === 1, '"short" string must be one character in length.');
       }
@@ -158,6 +156,14 @@ export class CliParser<T extends Array<ElemType>> {
     for (let i = 0; i < args.length; i++) {
       
       const a = args[i];
+      
+      if(a.startsWith('–')){
+        throw 'Your program has an "en-dash" instead of a hyphen - / --.';
+      }
+  
+      if(a.startsWith('—')){
+        throw 'Your program has an "em-dash" instead of a hyphen - / --.';
+      }
       
       if (prev) {
         
