@@ -46,14 +46,20 @@ const options = asOptions([
 ]);
 
 
-const p = new CliParser(options);
+// const p = new CliParser(options);
 
 
 
 
-// type Opts = OptionsToType<typeof options>;
-//
-// const v = <Opts>{foo: true};
+
+
+type Opts = OptionsToType<typeof options>;
+
+const v = <Opts>{foo: true, bar: 'ag'};
+
+
+
+
 //
 //
 //
