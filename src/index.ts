@@ -3,6 +3,7 @@
 // https://stackoverflow.com/questions/29775830/how-to-implement-a-typescript-decorator
 
 import * as assert from 'assert';
+import chalk from 'chalk';
 
 export const r2gSmokeTest = function () {
   // r2g command line app uses this exported function
@@ -109,7 +110,7 @@ export class CliParser<T extends Array<ElemType>> {
           const first = elem.slice(0, index).trim();
           const second = elem.slice(index + 1).trim();
           if (first.length < 1 || second.length < 1) {
-            throw new Error('Malformed expression involving equals (=) sign, see: ' + elem);
+            throw chalk.magenta('Malformed expression involving equals (=) sign, see: ' + elem);
           }
           ret.push(first, second);
           continue;
@@ -203,13 +204,13 @@ export class CliParser<T extends Array<ElemType>> {
         continue;
       }
       
-      let longOpt = null, shortOpts: Parsed = null;
+      let longOpt = null;
       
       if (a.startsWith('--')) {
         longOpt = nameHash[clean];
         
         if (!longOpt) {
-          throw new Error('Could not find option with name: ' + a);
+          throw chalk.magenta('Could not find option with name: ' + a);
         }
         
         if (longOpt.type === Type.Boolean) {
@@ -221,66 +222,59 @@ export class CliParser<T extends Array<ElemType>> {
         else {
           prev = longOpt;
           if (!args[i + 1]) {
-            throw new Error('Not enough arguments to satisfy:' + JSON.stringify(longOpt));
+            throw chalk.magenta('Not enough arguments to satisfy:') + JSON.stringify(longOpt);
           }
         }
         continue;
       }
       
       let c = null;
+      const shorties = a.slice(1).split('');
+      const shortOpts: Parsed = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
+      const keys = Object.keys(shortOpts);
       
-      if (a.startsWith('-')) {
+      for (let i = 0; i < keys.length; i++) {
         
-        const shorties = a.slice(1).split('');
-        shortOpts = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
+        const k = keys[i];
+        const t = shortOpts[k];
         
-        const keys = Object.keys(shortOpts);
-        
-        for (let i = 0; i < keys.length; i++) {
-          
-          const k = keys[i];
-          const t = shortOpts[k];
-          
-          if(!t){
-            throw 'No short name for letter: ' + k;
-          }
-          
-          if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
-            if (i < keys.length - 1) {
-              throw new Error('When you group options, only the last option can be non-boolean. This is a problem => ' + a);
-            }
-            if (!args[i + 1]) {
-              throw new Error('Not enough arguments to satisfy:' + JSON.stringify(t));
-            }
-            c = t;
-          }
-          
-          const shortHashVal = shortNameHash[k];
-          
-          if (!shortHashVal) {
-            throw new Error('Could not find option for shortname: ' + k);
-          }
-          
-          const longNameHashVal = nameHash[shortHashVal.cleanName];
-          
-          if (!longNameHashVal) {
-            throw new Error('Could not find hash val for name: ' + longNameHashVal);
-          }
-          
-          const originalName = longNameHashVal.name;
-          
-          if (shortHashVal.type === Type.Boolean) {
-            ret[originalName] = true;
-          }
-          else if (shortHashVal.type === Type.ArrayOfBoolean) {
-            ret[originalName].push(true);
-          }
-          
+        if (!t) {
+          throw chalk.magenta('No short name for letter: ' + k);
         }
         
+        if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
+          if (i < keys.length - 1) {
+            throw chalk.magenta('When you group options, only the last option can be non-boolean. This is a problem => ' + a);
+          }
+          if (!args[i + 1]) {
+            throw chalk.magenta('Not enough arguments to satisfy non-boolean option: ') + chalk.magenta.bold(JSON.stringify(t));
+          }
+          c = t;
+        }
+        
+        const shortHashVal = shortNameHash[k];
+        
+        if (!shortHashVal) {
+          throw chalk.magenta('Could not find option for shortname: ' + k);
+        }
+        
+        const longNameHashVal = nameHash[shortHashVal.cleanName];
+        
+        if (!longNameHashVal) {
+          throw chalk.magenta('Could not find hash val for name: ') + longNameHashVal;
+        }
+        
+        const originalName = longNameHashVal.name;
+        
+        if (shortHashVal.type === Type.Boolean) {
+          ret[originalName] = true;
+        }
+        else if (shortHashVal.type === Type.ArrayOfBoolean) {
+          ret[originalName].push(true);
+        }
       }
       
-      prev = c
+      prev = c;
     }
     
     return {
