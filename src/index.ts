@@ -112,6 +112,8 @@ export class CliParser<T extends Array<ElemType>> {
     
     const args = this.getSpreadedArray(process.argv.slice(2));
     
+    console.log('these args:', args);
+    
     let prev = null;
     
     for (let i = 0; i < args.length; i++) {
