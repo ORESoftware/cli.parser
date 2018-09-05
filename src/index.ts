@@ -161,13 +161,13 @@ export class CliParser<T extends Array<ElemType>> {
         
         let v: string | number | boolean | Array<string> | Array<number> | Array<boolean>;
         
-        if (prev.type === Type.String) {
+        if (prev.type === Type.String || prev.type === Type.ArrayOfString) {
           v = a.slice(0);
         }
-        else if (prev.type === Type.Integer) {
+        else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
           v = Number.parseInt(a);
         }
-        else if (prev.type === Type.Number) {
+        else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
           v = Number.parseFloat(a);
         }
         else if (CliParser.separators.includes(<Type>prev.type)) {
@@ -183,6 +183,9 @@ export class CliParser<T extends Array<ElemType>> {
             
             return v;
           });
+        }
+        else {
+          throw new Error('No type matched. Fallthrough.');
         }
         
         const name = prev.name;
@@ -244,7 +247,7 @@ export class CliParser<T extends Array<ElemType>> {
         
         if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
           if (i < keys.length - 1) {
-            throw chalk.magenta('When you group options, only the last option can be non-boolean. This is a problem => ' + a);
+            throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${a}`);
           }
           if (!args[i + 1]) {
             throw chalk.magenta('Not enough arguments to satisfy non-boolean option: ') + chalk.magenta.bold(JSON.stringify(t));
@@ -309,9 +312,9 @@ const p = new CliParser(asOptions([
   },
   
   {
-    name: 'tall',
-    short: 'X',
-    type: Type.Integer
+    name: 'Tall',
+    short: 'T',
+    type: Type.ArrayOfBoolean
   },
   
   {
