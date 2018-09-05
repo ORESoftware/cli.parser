@@ -75,11 +75,13 @@ export class CliParser<T extends Array<ElemType>> {
   
   options: T;
   opts: OptionsToType<T>;
+  
   static separators = [Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers];
   static arrays = [
-    Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger,
-    Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers
+    Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger
   ];
+  
+  allowUnknown = true;
   
   constructor(o: T) {
     this.options = o;
@@ -159,7 +161,7 @@ export class CliParser<T extends Array<ElemType>> {
       
       if (prev) {
         
-        let v: string | number | boolean | Array<string> | Array<number> | Array<boolean>;
+        let v: string | number | Array<string> | Array<number>;
         
         if (prev.type === Type.String || prev.type === Type.ArrayOfString) {
           v = a.slice(0);
@@ -193,6 +195,9 @@ export class CliParser<T extends Array<ElemType>> {
           ret[name].push(v);
         }
         else {
+          if (name in ret) {
+            throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
+          }
           ret[name] = v;
         }
         prev = null;
@@ -213,6 +218,11 @@ export class CliParser<T extends Array<ElemType>> {
         longOpt = nameHash[clean];
         
         if (!longOpt) {
+          if (this.allowUnknown) {
+            values.push(a);
+            continue;
+          }
+          
           throw chalk.magenta('Could not find option with name: ' + a);
         }
         
@@ -236,19 +246,26 @@ export class CliParser<T extends Array<ElemType>> {
       const shortOpts: Parsed = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
       const keys = Object.keys(shortOpts);
       
-      for (let i = 0; i < keys.length; i++) {
+      for (let j = 0; j < keys.length; j++) {
         
-        const k = keys[i];
+        const k = keys[j];
         const t = shortOpts[k];
         
         if (!t) {
-          throw chalk.magenta('No short name for letter: ' + k);
+          if (this.allowUnknown) {
+            values.push(a);
+            break;
+          }
+          else {
+            throw chalk.magenta('No short name for letter: ' + k);
+          }
         }
         
         if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
-          if (i < keys.length - 1) {
+          if (j < keys.length - 1) {
             throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${a}`);
           }
+          
           if (!args[i + 1]) {
             throw chalk.magenta('Not enough arguments to satisfy non-boolean option: ') + chalk.magenta.bold(JSON.stringify(t));
           }
@@ -308,7 +325,8 @@ const p = new CliParser(asOptions([
   {
     name: 'ccC',
     short: 'c',
-    type: Type.String
+    type: Type.SeparatedStrings,
+    separator: ','
   },
   
   {
