@@ -62,14 +62,19 @@ export const asOptions = <K extends keyof any, T extends Array<{ name: K, type: 
 export type OptionsToType<T extends Array<ElemType>>
   = { [K in T[number]['name']]: TypeMapping[Extract<T[number], { name: K }>['type']] }
 
+export interface ParsedValue extends ElemType {
+  cleanName: string
+}
+
 export interface Parsed {
-  [key: string]: { type: string, default: any, name: string, cleanName: string }
+  [key: string]: ParsedValue
 }
 
 export class CliParser<T extends Array<ElemType>> {
   
   options: T;
   opts: OptionsToType<T>;
+  static separators = [Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers];
   static arrays = [
     Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger,
     Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers
@@ -101,8 +106,11 @@ export class CliParser<T extends Array<ElemType>> {
       if (elem.startsWith('-')) {
         const index = elem.indexOf('=');
         if (index > -1) {
-          const first = elem.slice(0, index);
-          const second = elem.slice(index + 1);
+          const first = elem.slice(0, index).trim();
+          const second = elem.slice(index + 1).trim();
+          if (first.length < 1 || second.length < 1) {
+            throw new Error('Malformed expression involving equals (=) sign, see: ' + elem);
+          }
           ret.push(first, second);
           continue;
         }
@@ -133,28 +141,55 @@ export class CliParser<T extends Array<ElemType>> {
     for (let i = 0; i < this.options.length; i++) {
       const o = this.options[i];
       const cleanName = this.getCleanOpt(o.name);
-      nameHash[cleanName] = {type: o.type, default: o.default, name: o.name, cleanName};
+      nameHash[cleanName] = Object.assign({}, o, {cleanName});
       if (o.short) {
-        shortNameHash[o.short] = {type: o.type, default: o.default, name: o.name, cleanName};
+        shortNameHash[o.short] = Object.assign({}, o, {cleanName});
       }
     }
     
     const args = this.getSpreadedArray(process.argv.slice(2));
     console.log('these args:', args);
     
-    let prev = null;
+    let prev: ParsedValue = null;
     
     for (let i = 0; i < args.length; i++) {
       
       const a = args[i];
       
       if (prev) {
+        
+        let v: string | number | boolean | Array<string> | Array<number> | Array<boolean>;
+        
+        if (prev.type === Type.String) {
+          v = a.slice(0);
+        }
+        else if (prev.type === Type.Integer) {
+          v = Number.parseInt(a);
+        }
+        else if (prev.type === Type.Number) {
+          v = Number.parseFloat(a);
+        }
+        else if (CliParser.separators.includes(<Type>prev.type)) {
+          v = a.split(prev.separator || ',').map(v => String(v || '').trim()).filter(Boolean).map(v => {
+            switch (<Type>prev.type) {
+              case Type.SeparatedNumbers:
+                return JSON.parse(v);
+              case Type.SeparatedIntegers:
+                return Number.parseInt(v);
+              case Type.SeparatedBooleans:
+                return Boolean(JSON.parse(v));
+            }
+            
+            return v;
+          });
+        }
+        
         const name = prev.name;
         if (CliParser.arrays.includes(<Type>prev.type)) {
-          ret[name].push(a);
+          ret[name].push(v);
         }
         else {
-          ret[name] = a;
+          ret[name] = v;
         }
         prev = null;
         continue;
@@ -180,7 +215,7 @@ export class CliParser<T extends Array<ElemType>> {
         if (longOpt.type === Type.Boolean) {
           ret[longOpt.name] = true;
         }
-        else if(longOpt.type === Type.ArrayOfBoolean){
+        else if (longOpt.type === Type.ArrayOfBoolean) {
           ret[longOpt.name].push(true);
         }
         else {
@@ -192,25 +227,32 @@ export class CliParser<T extends Array<ElemType>> {
         continue;
       }
       
+      let c = null;
+      
       if (a.startsWith('-')) {
         
         const shorties = a.slice(1).split('');
         shortOpts = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
         
         const keys = Object.keys(shortOpts);
-        let moreThanOne = false;
         
-        keys.forEach(k => {
+        for (let i = 0; i < keys.length; i++) {
           
+          const k = keys[i];
           const t = shortOpts[k];
           
+          if(!t){
+            throw 'No short name for letter: ' + k;
+          }
+          
           if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
-            if (moreThanOne === true) {
-              throw new Error('You can only group boolean options, this is a problem => ' + a);
+            if (i < keys.length - 1) {
+              throw new Error('When you group options, only the last option can be non-boolean. This is a problem => ' + a);
             }
             if (!args[i + 1]) {
               throw new Error('Not enough arguments to satisfy:' + JSON.stringify(t));
             }
+            c = t;
           }
           
           const shortHashVal = shortNameHash[k];
@@ -230,20 +272,15 @@ export class CliParser<T extends Array<ElemType>> {
           if (shortHashVal.type === Type.Boolean) {
             ret[originalName] = true;
           }
-          else if(shortHashVal.type === Type.ArrayOfBoolean){
+          else if (shortHashVal.type === Type.ArrayOfBoolean) {
             ret[originalName].push(true);
           }
           
-          moreThanOne = true;
-        });
+        }
         
       }
       
-      prev = null;
-      const c = Object.values(shortOpts)[0];
-      if (c && c.type !== Type.Boolean && c.type !== Type.ArrayOfBoolean) {
-        prev = c;
-      }
+      prev = c
     }
     
     return {
@@ -272,9 +309,15 @@ const p = new CliParser(asOptions([
   },
   
   {
+    name: 'ccC',
+    short: 'c',
+    type: Type.String
+  },
+  
+  {
     name: 'tall',
     short: 'X',
-    type: Type.String
+    type: Type.Integer
   },
   
   {
