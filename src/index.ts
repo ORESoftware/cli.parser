@@ -246,7 +246,7 @@ export class CliParser<T extends Array<ElemType>> {
         else {
           prev = longOpt;
           if (!args[i + 1]) {
-            throw chalk.magenta('Not enough arguments to satisfy:') + JSON.stringify(longOpt);
+            throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(longOpt));
           }
         }
         continue;

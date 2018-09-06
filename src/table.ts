@@ -70,12 +70,34 @@ const getSeparatedString = (v: ElemType): string => {
 const getNames = (v: ElemType): string => {
   return [
     v.short ? chalk.bold('-' + v.short) : '',
-    '--' + String(v.name).toLowerCase(),
+    '--' + camel2Dash(v.name),
   ]
   .map(v => String(v || '').trim())
   .filter(Boolean)
   .join('\n')
 };
+
+
+const camel2Dash = (v: string): string => {
+  
+  let ret = '', prevLowercase = false;
+  
+  for(let s of v){
+    
+    const isUppercase = s.toUpperCase() === s;
+    if(isUppercase && prevLowercase){
+      ret += '-';
+    }
+    
+    ret+=s;
+    prevLowercase = !isUppercase;
+  }
+  
+  return ret.replace(/-+/g, '-').toLowerCase();
+  
+};
+
+
 
 export const getTable = (options: Array<ElemType>) => {
   
