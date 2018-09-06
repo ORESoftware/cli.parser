@@ -13,6 +13,7 @@ type TypeMapping = {
 export interface ElemType<T = any> {
   name: string,
   type: keyof TypeMapping,
+  typeOverride?: T
 }
 
 export const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
@@ -36,7 +37,6 @@ const v = asOptions([
 ]);
 
 const opts = <OptionsToType<typeof v>>{foo: true, bar: 'ageage'};
-
 
 
 
