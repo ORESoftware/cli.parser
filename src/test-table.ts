@@ -31,18 +31,20 @@ const options = asOptions([
     name: 'Tall',
     short: 'T',
     type: Type.ArrayOfBoolean,
-    env: 'dark_knight',
+    env: 'dart',
     help: 'This is how we do it, friday night and I feel alright. This is how we do it, friday, \n night and I feel alright.'
   },
+  
   
   {
     name: 'dog',
     short: 'x',
-    type: Type.JSON
+    type: Type.JSON,
   }
 
 ]);
 
 const p = new CliParser(options);
+
 console.log(p.getHelpString());
 

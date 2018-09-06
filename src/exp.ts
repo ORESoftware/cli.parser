@@ -1,67 +1,32 @@
 'use strict';
 
-import {asOptions, CliParser, OptionsToType, Type} from './index';
+interface Elem<T = any> {
+  name: string,
+  type: string,
+  typeOverride?: T
+}
 
+interface JSON {
 
-const options = asOptions([
-  {
-    name: ['foo', 'biz'],
-    type: Type.Boolean
-  },
+}
 
-  {
-    name: ['bar'],
-    type: Type.String
-  },
+const typeOverride = <T>(v: Elem): Elem<T> => <Elem<T>>v;
 
-  {
-    name: ['baz'],
-    type: Type.Number
-  },
-
-  {
-    name: ['bab'],
-    type: Type.ArrayOfString
-  }
+const v: Array<Elem> = [
   
-  // {
-  //   name: 'foo',
-  //   type: Type.Boolean
-  // },
-  //
-  // {
-  //   name: 'bar',
-  //   type: Type.String
-  // },
-  //
-  // {
-  //   name: 'baz',
-  //   type: Type.Number
-  // },
-  //
-  // {
-  //   name: 'bab',
-  //   type: Type.ArrayOfString
-  // }
-]);
-
-
-// const p = new CliParser(options);
+  {name: 'foo', type: 'Boolean'},
+  
+  {name: 'bar', type: 'String'},
+  
+  typeOverride<string>({
+    name: 'baz',
+    type: 'JSON'
+  })
+  
+];
 
 
 
 
 
 
-type Opts = OptionsToType<typeof options>;
-
-const v = <Opts>{foo: true, bar: 'ag'};
-
-
-
-
-//
-//
-//
-//
-// console.log(typeof v.foo);

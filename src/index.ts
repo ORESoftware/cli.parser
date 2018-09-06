@@ -1,7 +1,6 @@
 'use strict';
 
 // https://stackoverflow.com/questions/29775830/how-to-implement-a-typescript-decorator
-
 // https://stackoverflow.com/questions/52175508/conditional-types-with-typescript
 
 import * as assert from 'assert';
@@ -13,7 +12,7 @@ export const r2gSmokeTest = function () {
   return true;
 };
 
-type TypeMapping = {
+type TypeMapping<T = any> = {
   Boolean: boolean,
   String: string,
   Number: number,
@@ -22,7 +21,7 @@ type TypeMapping = {
   ArrayOfBoolean: Array<boolean>,
   ArrayOfNumber: Array<number>,
   ArrayOfInteger: Array<number>,
-  JSON: any,
+  JSON: T,
   SeparatedStrings: Array<string>,
   SeparatedNumbers: Array<string>,
   SeparatedIntegers: Array<string>,
@@ -51,7 +50,7 @@ export enum Type {
 // type OptionsToType<T extends Array<{ name: keyof any, type: keyof TypeMapping }>>
 //   = { [K in T[number]['name']]: TypeMapping[Extract<T[number], { name: K }>['type']] }
 
-export interface ElemType {
+export interface ElemType<T = any> {
   name: string,
   alt?: string | Array<string>
   short?: string,

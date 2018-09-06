@@ -1,5 +1,7 @@
 import {getTable} from './table';
-import {asOptions, CliParser, Type} from './index';
+import {asOptions, CliParser, Type, ElemType} from './index';
+
+const typeOverride = <T>(v: ElemType) => <ElemType<T>>v;
 
 const options = asOptions([
   {
@@ -10,6 +12,7 @@ const options = asOptions([
   
   {
     name: 'zoomBar',
+    short: 'z',
     type: Type.String
   },
   
@@ -33,10 +36,10 @@ const options = asOptions([
     help: 'This is how we do it, friday night and I feel alright.'
   },
   
-  {
+ {
     name: 'dog',
     short: 'x',
-    type: Type.String
+    type: Type.ArrayOfString
   }
 
 ]);
@@ -44,6 +47,8 @@ const options = asOptions([
 const p = new CliParser(options);
 
 const {opts, values} = p.parse();
+
+
 
 console.log('opts:', opts);
 console.log('values:', values);
