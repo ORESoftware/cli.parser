@@ -23,7 +23,8 @@ const options = asOptions([
     name: 'ccC',
     short: 'c',
     type: Type.SeparatedStrings,
-    separator: ','
+    separator: ',',
+    help: 'dogt cat cat   cat dog dog dog cat cat cat   cat dog dog dog cat cat cat   cat  dog cat cat cat   cat dog'
   },
   
   {
@@ -31,7 +32,7 @@ const options = asOptions([
     short: 'T',
     type: Type.ArrayOfBoolean,
     env: 'dark_knight',
-    help: 'This is how we do it, friday night and I feel alright. This is how we do it, friday, night and I feel alright.'
+    help: 'This is how we do it, friday night and I feel alright. This is how we do it, friday, \n night and I feel alright.'
   },
   
   {
@@ -44,3 +45,4 @@ const options = asOptions([
 
 const p = new CliParser(options);
 console.log(p.getHelpString());
+

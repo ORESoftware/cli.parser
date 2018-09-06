@@ -103,7 +103,7 @@ export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliPa
   ]);
   
   table.push([
-    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description')
+    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Help')
   ]);
   
   options.forEach(v => {

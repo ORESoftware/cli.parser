@@ -24,7 +24,8 @@ export const splitString = (n: number, intersperseWith: string, str: string): st
 
 export const wrapString = (n: number, str: string): string => {
   
-  let ret : Array<string> = [], remaining = str;
+  let ret : Array<string> = [],
+    remaining = String(str || '').replace(/[\r\n]/g, '');
   
   while (remaining) {
     
@@ -32,7 +33,7 @@ export const wrapString = (n: number, str: string): string => {
     let nextIsWhitepace = !remaining[v.length] || /\s/.test(remaining[v.length]);
     if(nextIsWhitepace){
       remaining = remaining.slice(v.length);
-      ret.push(v);
+      ret.push(String(v || '').trim());
       continue;
     }
     
@@ -45,7 +46,7 @@ export const wrapString = (n: number, str: string): string => {
     }
   
     remaining = remaining.slice(v.length);
-    ret.push(v);
+    ret.push(String(v || '').trim());
    
   }
   

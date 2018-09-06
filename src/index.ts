@@ -87,9 +87,9 @@ export interface CliParserOptions {
 
 export class CliParser<T extends Array<ElemType>> {
   
-  options: T;
-  opts: OptionsToType<T>;
-  parserOpts: CliParserOptions;
+  private readonly options: T;
+  private readonly opts: OptionsToType<T>;
+  private readonly parserOpts: CliParserOptions;
   
   static separators = [Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers];
   static arrays = [Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger];
