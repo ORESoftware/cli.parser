@@ -38,7 +38,7 @@ const options = asOptions([
   {
     name: 'dog',
     short: 'x',
-    type: Type.String
+    type: Type.JSON
   }
 
 ]);
