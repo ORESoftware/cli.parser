@@ -3,7 +3,7 @@
 import {CliParser, CliParserHelpOpts, CliParserOptions, ElemType, Type} from './index';
 // const AsciiTable = require('ascii-table');
 import chalk from 'chalk';
-import {flattenDeep, splitString, wrapString} from './utils';
+import {flattenDeep, wrapString} from './utils';
 
 const {table} = require('table');
 const Table = require('cli-table2');

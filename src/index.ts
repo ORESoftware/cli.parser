@@ -6,6 +6,7 @@
 import * as assert from 'assert';
 import chalk from 'chalk';
 import {getTable} from './table';
+import * as util from 'util';
 
 export const r2gSmokeTest = function () {
   // r2g command line app uses this exported function
@@ -81,7 +82,7 @@ export interface CliParserHelpOpts {
 export interface CliParserOptions {
   commandName: string,
   commandExample: string
-  
+  allowUnknown: boolean
 }
 
 export class CliParser<T extends Array<ElemType>> {
@@ -95,16 +96,43 @@ export class CliParser<T extends Array<ElemType>> {
   
   allowUnknown = false;
   
-  constructor(o: T, opts?: CliParserOptions) {
+  constructor(o: T, opts?: Partial<CliParserOptions>) {
     
     this.parserOpts = <CliParserOptions>(opts || {});
     this.options = o;
-    for (let i = 0; i < o.length; i++) {
-      const v = o[i];
-      if (v.short) {
-        assert(typeof v.short === 'string', '"short" property must be a string.');
-        assert(v.short.length === 1, '"short" string must be one character in length.');
+    
+    try {
+      
+      if ('allowUnknown' in this.parserOpts) {
+        assert([undefined, true, false].includes(this.parserOpts.allowUnknown),
+          '"allowUnknown" option must be a boolean.');
       }
+      
+      this.allowUnknown = this.parserOpts.allowUnknown || false;
+      
+      const set = {} as { [key: string]: true };
+      
+      for (let i = 0; i < o.length; i++) {
+        const v = o[i];
+        
+        assert(v.name && typeof v.name === 'string',
+          `${JSON.stringify(v)} is missing a name field, or the field is not a string.`);
+        
+        assert(!/-{2}/.test(v.name), `A "name" field cannot have more than one consecutive hyphen. See: ${chalk.bold(v.name)}.`);
+        assert(!v.name.startsWith('-'), 'A "name" field cannot start with a - hyphen character.');
+        
+        assert(/^[A-Za-z0-9-_:@]+$/.test(v.name),
+          `"name" letter must be alphanumeric, or have a colon, underscore, ampersand, or hyphen/dash. See: ${chalk.bold(v.name)}.`);
+        
+        if (v.short) {
+          assert(typeof v.short === 'string', `"short" property must be a string. See: '${util.inspect(v.short)}'.`);
+          assert(v.short.length === 1, `"short" string property must be one character in length. See: '${v.short}'.`);
+          assert(/[A-Za-z]/.test(v.short), `"short" letter must be alphabetic (uppercase or lowercase. See: '${v.short}'.`);
+        }
+      }
+    }
+    catch (e) {
+      throw chalk.magenta(e);
     }
   }
   
@@ -153,7 +181,37 @@ export class CliParser<T extends Array<ElemType>> {
     return getTable(this.options, this.parserOpts, v);
   }
   
-  parse() {
+  private popOffExecArgs(argv: Array<string>): Array<string> {
+    
+    const ret: Array<string> = argv.slice(1);  // first remove node, or whatever
+    const temp = argv.slice(1);
+    
+    let first = false;
+    while (temp.length) {
+      
+      let next = temp.shift();
+      
+      if (first) {
+        ret.push(next);
+        continue;
+      }
+      
+      if (next.startsWith('-')) {
+        first = true;
+      }
+    }
+    
+    return ret;
+    
+  }
+  
+  parse(argv?: Array<string>) {
+    
+    argv = argv || process.argv;
+    assert(Array.isArray(argv), 'argv is not an array.');
+    argv.forEach(v => {
+      assert.strictEqual(typeof v, 'string', `Element in the argv array is not a string type => ${util.inspect(v)}`);
+    });
     
     const ret = {} as { [key: string]: any };
     const values: Array<string> = [];
@@ -178,7 +236,7 @@ export class CliParser<T extends Array<ElemType>> {
       }
     }
     
-    const args = this.getSpreadedArray(process.argv.slice(2));
+    const args = this.getSpreadedArray(this.popOffExecArgs(argv));
     console.log('these args:', args);
     
     let prev: ParsedValue = null;
@@ -221,13 +279,13 @@ export class CliParser<T extends Array<ElemType>> {
         const name = prev.name;
         if (CliParser.arrays.includes(<Type>prev.type)) {
           ret[name].push(v);
+          continue;
         }
-        else {
-          if (name in ret) {
-            throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
-          }
-          ret[name] = v;
+        
+        if (name in ret) {
+          throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
         }
+        ret[name] = v;
         prev = null;
         continue;
       }
@@ -301,19 +359,16 @@ export class CliParser<T extends Array<ElemType>> {
         }
         
         const shortHashVal = shortNameHash[k];
-        
         if (!shortHashVal) {
           throw chalk.magenta('Could not find option for shortname: ' + k);
         }
         
         const longNameHashVal = nameHash[shortHashVal.cleanName];
-        
         if (!longNameHashVal) {
           throw chalk.magenta('Could not find hash val for name: ') + longNameHashVal;
         }
         
         const originalName = longNameHashVal.name;
-        
         if (shortHashVal.type === Type.Boolean) {
           ret[originalName] = true;
         }

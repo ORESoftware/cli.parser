@@ -38,6 +38,7 @@
     "@types/cli-table2": "^0.2.1",
     "@types/core-js": "^0.9.46",
     "@types/node": "^9.6.2",
-    "@types/table": "^4.0.5"
+    "@types/table": "^4.0.5",
+    "prepend-transform": "0.0.1017"
   }
 }

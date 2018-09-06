@@ -17,6 +17,13 @@ const options = asOptions([
   },
   
   {
+    name: 'foo',
+    short: 'f',
+    type: Type.String
+  },
+  
+  
+  {
     name: 'bbb',
     short: 'b',
     type: Type.ArrayOfBoolean
