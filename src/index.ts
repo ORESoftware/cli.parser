@@ -75,17 +75,30 @@ export interface Parsed {
   [key: string]: ParsedValue
 }
 
+export interface CliParserHelpOpts {
+  includeEnv: boolean
+}
+
+export interface CliParserOptions {
+  commandName: string,
+  commandExample: string
+  
+}
+
 export class CliParser<T extends Array<ElemType>> {
   
   options: T;
   opts: OptionsToType<T>;
+  parserOpts: CliParserOptions;
   
   static separators = [Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers];
   static arrays = [Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger];
   
   allowUnknown = false;
   
-  constructor(o: T) {
+  constructor(o: T, opts?: CliParserOptions) {
+    
+    this.parserOpts = <CliParserOptions>(opts || {});
     this.options = o;
     for (let i = 0; i < o.length; i++) {
       const v = o[i];
@@ -134,6 +147,11 @@ export class CliParser<T extends Array<ElemType>> {
     }
     
     return ret;
+  }
+  
+  getHelpString(v?: CliParserHelpOpts) {
+    v = <CliParserHelpOpts>(v || {});
+    return getTable(this.options, this.parserOpts, v);
   }
   
   parse() {
@@ -314,57 +332,6 @@ export class CliParser<T extends Array<ElemType>> {
     };
   }
 }
-
-const options = asOptions([
-  {
-    name: 'aaa',
-    short: 'a',
-    type: Type.Boolean
-  },
-  
-  {
-    name: 'zoomBar',
-    type: Type.String
-  },
-  
-  {
-    name: 'bbb',
-    short: 'b',
-    type: Type.ArrayOfBoolean
-  },
-  
-  {
-    name: 'ccC',
-    short: 'c',
-    type: Type.SeparatedStrings,
-    separator: ','
-  },
-  
-  {
-    name: 'Tall',
-    short: 'T',
-    type: Type.ArrayOfBoolean
-  },
-  
-  {
-    name: 'dog',
-    short: 'x',
-    type: Type.String
-  }
-
-]);
-
-const p = new CliParser(options);
-
-const {opts, values} = p.parse();
-
-console.log('opts:', opts);
-console.log('values:', values);
-
-
-const table = getTable(options);
-
-console.log(table.toString());
 
 
 
