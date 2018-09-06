@@ -1,12 +1,11 @@
 'use strict';
 
-import {ElemType} from './index';
-const {table} =  require('table');
+import {CliParser, ElemType, Type} from './index';
+
+const {table} = require('table');
 const Table = require('cli-table2');
 // const AsciiTable = require('ascii-table');
 import chalk from 'chalk';
-
-
 
 // export const getTable2 = (options: Array<ElemType>) => {
 //
@@ -27,7 +26,6 @@ import chalk from 'chalk';
 //
 // };
 
-
 export const getTable3 = (options: Array<ElemType>) => {
   
   // const data = [
@@ -37,7 +35,7 @@ export const getTable3 = (options: Array<ElemType>) => {
   // ];
   
   const data = options.map(v => {
-     return [v.name, v.help || 'agejaogeja ao agjeaogjeojagojaeo aogije']
+    return [v.name, v.help || 'agejaogeja ao agjeaogjeojagojaeo aogije']
   });
   
   const config = {
@@ -62,6 +60,22 @@ export const getTable3 = (options: Array<ElemType>) => {
   
 };
 
+const getSeparatedString = (v: ElemType): string => {
+  if (CliParser.separators.includes(<Type>v.type)) {
+    return ` (${v.separator || ','})`;
+  }
+  return '';
+};
+
+const getNames = (v: ElemType): string => {
+  return [
+    v.short ? chalk.bold('-' + v.short) : '',
+    '--' + String(v.name).toLowerCase(),
+  ]
+  .map(v => String(v || '').trim())
+  .filter(Boolean)
+  .join('\n')
+};
 
 export const getTable = (options: Array<ElemType>) => {
   
@@ -72,18 +86,29 @@ export const getTable = (options: Array<ElemType>) => {
   // ];
   
   const table = new Table({
-    head: ['TH 1 label', 'TH 2 label'],
-    colWidths: [50, 30]
+    // head: ['Name(s)', 'Type', 'Description'],
+    colWidths: [40, 25, 60]
   });
   
+  table.push([
+    {colSpan: 3, content: 'greetings\ndog\nfrog'}
+  ]);
+  
+  table.push([
+    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description')
+  ]);
+  
   options.map(v => {
-    return [v.name, v.help || 'agejaogeja ao o age agageageage777']
+    return [getNames(v), chalk.bold.gray(v.type + `${getSeparatedString(v)}`), v.help || 'agejaogeja ao o age agageageage\n777']
   })
   .forEach(v => {
     table.push(v);
   });
   
-  return table;
+  return String(table)
+  .split('\n')
+  .map(v => '  ' + v)
+  .join('\n');
   
 };
 
