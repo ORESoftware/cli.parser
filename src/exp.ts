@@ -1,6 +1,6 @@
 'use strict';
 
-type TypeMapping = {
+export type TypeMapping = {
   Boolean: boolean,
   String: string,
   Number: number,
@@ -25,15 +25,15 @@ export type OptionsToType<T extends Array<ElemType>>
 const typeOverride = <T>(v: ElemType): ElemType<T> => <ElemType<T>>v;
 
 const v = asOptions([
-  
+
   {name: 'foo', type: 'Boolean'},
   {name: 'bar', type: 'String'},
-  
+
   typeOverride<string>({
     name: 'baz',
     type: 'JSON'
   })
-  
+
 ]);
 
 const opts = <OptionsToType<typeof v>>{foo: true, bar: 'ageage'};
