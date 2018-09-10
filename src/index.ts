@@ -7,6 +7,7 @@ import * as assert from 'assert';
 import chalk from 'chalk';
 import {getTable} from './table';
 import * as util from 'util';
+import {findJSONFiles} from './utils';
 
 export const r2gSmokeTest = function () {
   // r2g command line app uses this exported function
@@ -82,7 +83,8 @@ export interface CliParserHelpOpts {
 export interface CliParserOptions {
   commandName: string,
   commandExample: string
-  allowUnknown: boolean
+  allowUnknown: boolean,
+  useJSONEnv: boolean
 }
 
 export type ParsedType = Date | string | number | boolean | Array<string> | Array<number> | Array<boolean> | Array<Date>
@@ -107,6 +109,8 @@ export class CliParser<T extends Array<ElemType>> {
   static arrays = [Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger, Type.ArrayOfNumber];
   
   allowUnknown = false;
+  useJSONEnv = true;
+  env: { [key: string]: string } = null;
   
   constructor(o: T, opts?: Partial<CliParserOptions>) {
     
@@ -121,6 +125,13 @@ export class CliParser<T extends Array<ElemType>> {
       }
       
       this.allowUnknown = this.parserOpts.allowUnknown || false;
+      this.useJSONEnv = this.parserOpts.useJSONEnv !== false;
+      
+      this.env = Object.assign({}, process.env);
+      
+      if (this.useJSONEnv) {
+        this.env = Object.assign(this.env, findJSONFiles(process.cwd()));
+      }
       
       const set = {} as { [key: string]: true };
       
@@ -165,8 +176,6 @@ export class CliParser<T extends Array<ElemType>> {
   }
   
   static getCleanOpt(v: string) {
-    
-    // return String(v).replace(/[-_]/g, '').toLowerCase();
     
     while (v.startsWith('-')) {
       v = v.slice(1);
@@ -233,24 +242,26 @@ export class CliParser<T extends Array<ElemType>> {
     
     console.log('argv:', argv);
     
-    const ret = {} as { [key: string]: any };
+    const opts: { [index: string]: any } = {};
     const values: Array<string> = [];
     const groups: Array<CliParserGroup> = [];
     const order: Array<CliParserOrder> = [];
     
     this.options.forEach(v => {
       if (CliParser.arrays.includes(<Type>v.type)) {
-        ret[v.name] = [];
+        opts[v.name] = [];
       }
       if (CliParser.separators.includes(<Type>v.type)) {
-        ret[v.name] = [];
+        opts[v.name] = [];
       }
     });
     
-    console.log('ret prepped:', ret);
+    
+    console.log('ret prepped:', opts);
     
     const nameHash = <Parsed>{};
     const shortNameHash = <Parsed>{};
+    const envHash = <Parsed>{};
     
     for (let i = 0; i < this.options.length; i++) {
       const o = this.options[i];
@@ -259,7 +270,20 @@ export class CliParser<T extends Array<ElemType>> {
       if (o.short) {
         shortNameHash[o.short] = Object.assign({}, o, {cleanName});
       }
+      if(o.env){
+        envHash[o.env as string] = Object.assign({}, o, {cleanName});
+      }
     }
+  
+    Object.keys(this.env).forEach(k => {
+      
+      if(k in envHash){
+        const v = envHash[k];
+        
+        
+      }
+      
+    });
     
     const args = CliParser.getSpreadedArray(argv);
     console.log('these args:', args);
@@ -314,20 +338,20 @@ export class CliParser<T extends Array<ElemType>> {
         }
         
         if (CliParser.arrays.includes(<Type>prev.type)) {
-          ret[name].push(v);
+          opts[name].push(v);
           order.push({name, value: v, from: 'argv'});
           prev = null;
           continue;
         }
         
-        if (name in ret) {
-          console.log({name, ret});
+        if (name in opts) {
+          console.log({name, ret: opts});
           throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
         }
         
         prev = null;
         order.push({name, value: v, from: 'argv'});
-        ret[name] = v;
+        opts[name] = v;
         continue;
       }
       
@@ -354,11 +378,11 @@ export class CliParser<T extends Array<ElemType>> {
         }
         
         if (longOpt.type === Type.Boolean) {
-          ret[longOpt.name] = true;
+          opts[longOpt.name] = true;
           order.push({name: longOpt.name, value: true, from: 'argv'});
         }
         else if (longOpt.type === Type.ArrayOfBoolean) {
-          ret[longOpt.name].push(true);
+          opts[longOpt.name].push(true);
           order.push({name: longOpt.name, value: true, from: 'argv'});
         }
         else {
@@ -405,11 +429,11 @@ export class CliParser<T extends Array<ElemType>> {
         const originalName = longNameHashVal.name;
         
         if (shortHashVal.type === Type.Boolean) {
-          ret[originalName] = true;
+          opts[originalName] = true;
           order.push({name: originalName, value: true, from: 'argv'});
         }
         else if (shortHashVal.type === Type.ArrayOfBoolean) {
-          ret[originalName].push(true);
+          opts[originalName].push(true);
           order.push({name: originalName, value: true, from: 'argv'});
         }
         else {
@@ -439,7 +463,7 @@ export class CliParser<T extends Array<ElemType>> {
     }
     
     return {
-      opts: <OptionsToType<T>>ret,
+      opts: <OptionsToType<T>>opts,
       values,
       groups,
       order

@@ -1,5 +1,8 @@
 'use strict';
 
+import * as path from 'path';
+import * as assert from 'assert';
+import chalk from 'chalk';
 
 export const flattenDeep = (a: Array<any>): Array<any> => {
   return a.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val), []);
@@ -22,32 +25,56 @@ export const splitString = (n: number, intersperseWith: string, str: string): st
   
 };
 
+export const findJSONFiles = (pth: string): object => {
+  
+  const values: Array<object> = [];
+  assert(path.isAbsolute(pth), 'pth must be an absolute path.');
+  
+  while (pth.startsWith(process.env.HOME)) {
+    
+    try {
+      values.push(require(path.resolve(pth, '.cli.json')))
+    }
+    catch (err) {
+      if(/parse/i.test(err.message)){
+        console.error(chalk.magenta(err));
+      }
+    }
+    
+    pth = path.resolve(pth, '..');
+    
+  }
+  
+  return Object.assign({}, ...values.reverse());
+  
+};
+
 export const wrapString = (n: number, str: string): string => {
   
-  let ret : Array<string> = [],
+  let ret: Array<string> = [],
     remaining = String(str || '').replace(/[\r\n]/g, '');
   
   while (remaining) {
     
     let v = remaining.slice(0, n);
     let nextIsWhitepace = !remaining[v.length] || /\s/.test(remaining[v.length]);
-    if(nextIsWhitepace){
+    if (nextIsWhitepace) {
       remaining = remaining.slice(v.length);
       ret.push(String(v || '').trim());
       continue;
     }
     
-    while(v.length){
-      const l = v[v.length -1];
-      if(!l || /\s/.test(l)){
+    while (v.length) {
+      const l = v[v.length - 1];
+      if (!l || /\s/.test(l)) {
         break;
       }
-      v = v.slice(0, v.length -1);
+      v = v.slice(0, v.length - 1);
     }
-  
+    
     remaining = remaining.slice(v.length);
     ret.push(String(v || '').trim());
-   
+    
   }
   
   return ret.join('\n');

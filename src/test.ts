@@ -60,7 +60,7 @@ const options = asOptions([
 
 const p = new CliParser(options);
 
-const {opts, values, groups, order} = p.parse();
+const {opts, values, groups, order} = p.parse(process.argv);
 
 
 console.log('order:', order);
