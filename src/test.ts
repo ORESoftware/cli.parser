@@ -9,40 +9,40 @@ const options = asOptions([
     short: 'a',
     type: Type.Boolean
   },
-  
+
   {
     name: 'zoomBar',
     short: 'z',
     type: Type.String
   },
-  
+
   {
     name: 'foo',
     short: 'f',
     type: Type.String
   },
-  
-  
+
+
   {
     name: 'bbb',
     short: 'b',
     type: Type.ArrayOfBoolean
   },
-  
+
   {
     name: 'ccC',
     short: 'c',
     type: Type.SeparatedStrings,
     separator: ','
   },
-  
+
   {
     name: 'Tall',
     short: 'T',
     type: Type.ArrayOfBoolean,
     help: 'This is how we do it, friday night and I feel alright.'
   },
-  
+
  {
     name: 'dog',
     short: 'x',
@@ -53,10 +53,10 @@ const options = asOptions([
 
 const p = new CliParser(options);
 
-const {opts, values} = p.parse();
+const {opts, values, groups} = p.parse();
 
 
-
+console.log('groups:', groups);
 console.log('opts:', opts);
 console.log('values:', values);
 

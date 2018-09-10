@@ -86,6 +86,12 @@ export interface CliParserOptions {
   allowUnknown: boolean
 }
 
+export type ParsedType = string | number | boolean | Array<string> | Array<number> | Array<boolean>
+
+export interface CliParserGroup {
+  [key:string]: ParsedType
+}
+
 export class CliParser<T extends Array<ElemType>> {
 
   private readonly options: T;
@@ -202,7 +208,6 @@ export class CliParser<T extends Array<ElemType>> {
     return getTable(this.options, this.parserOpts, v);
   }
 
-
   parse(argv?: Array<string>) {
 
     if (!argv) {
@@ -220,6 +225,7 @@ export class CliParser<T extends Array<ElemType>> {
 
     const ret = {} as { [key: string]: any };
     const values: Array<string> = [];
+    const groups: Array<CliParserGroup> = [];
 
     this.options.forEach(v => {
       if (CliParser.arrays.includes(<Type>v.type)) {
@@ -244,15 +250,19 @@ export class CliParser<T extends Array<ElemType>> {
     const args = this.getSpreadedArray(argv);
     console.log('these args:', args);
 
-    let prev: ParsedValue = null;
+    let prev: ParsedValue = null, g: CliParserGroup = null;
 
     for (let i = 0; i < args.length; i++) {
 
       const a = args[i];
 
+      if(prev && a.startsWith('-')){
+        throw 'Expected a value but got an option instead.';
+      }
+
       if (prev) {
 
-        let v: string | number | Array<string> | Array<number>;
+        let v: ParsedType;
 
         if (prev.type === Type.String || prev.type === Type.ArrayOfString) {
           v = a.slice(0);
@@ -282,6 +292,13 @@ export class CliParser<T extends Array<ElemType>> {
         }
 
         const name = prev.name;
+
+        if(g){
+          g[name] = v;
+          groups.push(g);
+          g = null;
+        }
+
         if (CliParser.arrays.includes(<Type>prev.type)) {
           ret[name].push(v);
           continue;
@@ -307,6 +324,7 @@ export class CliParser<T extends Array<ElemType>> {
       let longOpt = null;
 
       if (a.startsWith('--')) {
+
         longOpt = nameHash[clean];
 
         if (!longOpt) {
@@ -338,6 +356,8 @@ export class CliParser<T extends Array<ElemType>> {
       const shortOpts: Parsed = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
       const keys = Object.keys(shortOpts);
 
+      g = {};
+
       for (let j = 0; j < keys.length; j++) {
 
         const k = keys[j];
@@ -353,6 +373,16 @@ export class CliParser<T extends Array<ElemType>> {
           throw chalk.magenta('No short name for letter: ' + k);
         }
 
+        const shortHashVal = shortNameHash[k];
+        if (!shortHashVal) {
+          throw chalk.magenta('Could not find option for shortname: ' + k);
+        }
+
+        const longNameHashVal = nameHash[shortHashVal.cleanName];
+        if (!longNameHashVal) {
+          throw chalk.magenta('Could not find hash val for name: ') + longNameHashVal;
+        }
+
         if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
           if (j < keys.length - 1) {
             throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${a}`);
@@ -364,31 +394,33 @@ export class CliParser<T extends Array<ElemType>> {
           c = t;
         }
 
-        const shortHashVal = shortNameHash[k];
-        if (!shortHashVal) {
-          throw chalk.magenta('Could not find option for shortname: ' + k);
-        }
-
-        const longNameHashVal = nameHash[shortHashVal.cleanName];
-        if (!longNameHashVal) {
-          throw chalk.magenta('Could not find hash val for name: ') + longNameHashVal;
-        }
 
         const originalName = longNameHashVal.name;
+
         if (shortHashVal.type === Type.Boolean) {
           ret[originalName] = true;
         }
         else if (shortHashVal.type === Type.ArrayOfBoolean) {
           ret[originalName].push(true);
         }
+
+        g[originalName] = true;
+
       }
 
-      prev = c;
+      if(c){
+        prev = c;
+      }
+      else if(Object.keys(g).length > 0){
+        groups.push(g);
+      }
+
     }
 
     return {
       opts: <OptionsToType<T>>ret,
-      values
+      values,
+      groups
     };
   }
 }

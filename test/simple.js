@@ -95,7 +95,7 @@ Test.create(b => {
       env: {
         cli_options: [
           {
-            name: 'U',
+            name: 'Z',
             short: 'v',
             type: Type.ArrayOfBoolean
           },
@@ -138,7 +138,8 @@ Test.create(b => {
         k.once('exit', t.wrapFinal(code => {
 
           if (v.expectedStderr) {
-            assert(v.expectedStderr.test(stderr), 'stderr does not match');
+            assert(v.expectedStderr.test(stderr),
+              `${index}: stderr does not match: ${v.expectedStderr} does not match '${String(stderr || '').trim()}'`);
           }
 
           assert.strictEqual(code, v.expectedExitCode, 'Expected exit code did not match.');
