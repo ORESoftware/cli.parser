@@ -144,15 +144,17 @@ export class CliParser<T extends Array<ElemType>> {
           assert(/[A-Za-z]/.test(v.short), `"short" letter must be alphabetic (uppercase or lowercase. See: '${v.short}'.`);
         }
         
-        const clean = this.getCleanOpt(v.name);
+        const clean = CliParser.getCleanOpt(v.name);
         
         if (set[clean]) {
           throw `Duplication of option for "name" => '${v.name}'.`;
         }
-        else if (set[v.short]) {
+        
+        if (set[v.short]) {
           throw `Duplication of option for "short" => '${v.short}'.`;
         }
-        else if (v.short) {
+        
+        if (v.short) {
           set[clean] = set[v.short] = true;
         }
       }
@@ -162,7 +164,7 @@ export class CliParser<T extends Array<ElemType>> {
     }
   }
   
-  getCleanOpt(v: string) {
+  static getCleanOpt(v: string) {
     
     // return String(v).replace(/[-_]/g, '').toLowerCase();
     
@@ -173,7 +175,7 @@ export class CliParser<T extends Array<ElemType>> {
     return v.toLowerCase()
   }
   
-  getSpreadedArray(v: Array<string>): Array<string> {
+  static getSpreadedArray(v: Array<string>): Array<string> {
     
     const ret: Array<string> = [];
     
@@ -252,14 +254,14 @@ export class CliParser<T extends Array<ElemType>> {
     
     for (let i = 0; i < this.options.length; i++) {
       const o = this.options[i];
-      const cleanName = this.getCleanOpt(o.name);
+      const cleanName = CliParser.getCleanOpt(o.name);
       nameHash[cleanName] = Object.assign({}, o, {cleanName});
       if (o.short) {
         shortNameHash[o.short] = Object.assign({}, o, {cleanName});
       }
     }
     
-    const args = this.getSpreadedArray(argv);
+    const args = CliParser.getSpreadedArray(argv);
     console.log('these args:', args);
     
     let prev: ParsedValue = null, g: CliParserGroup = null;
@@ -335,7 +337,7 @@ export class CliParser<T extends Array<ElemType>> {
         continue;
       }
       
-      const clean = this.getCleanOpt(a);
+      const clean = CliParser.getCleanOpt(a);
       let longOpt = null;
       
       if (a.startsWith('--')) {

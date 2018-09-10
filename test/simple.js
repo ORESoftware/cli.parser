@@ -226,7 +226,7 @@ Test.create(b => {
         
         let stderr = '';
         k.stderr.on('data', d => {
-          stderr += String(d || '');
+          stderr += String(d || '').trim();
         });
         
         k.stderr.pipe(pt('\t' + chalk.yellow(`stderr for ${index}: `))).pipe(process.stderr);
