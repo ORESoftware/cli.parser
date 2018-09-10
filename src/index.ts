@@ -223,6 +223,8 @@ export class CliParser<T extends Array<ElemType>> {
       assert.strictEqual(typeof v, 'string', `Element in the argv array is not a string type => ${util.inspect(v)}`);
     });
 
+    console.log('argv:', argv);
+
     const ret = {} as { [key: string]: any };
     const values: Array<string> = [];
     const groups: Array<CliParserGroup> = [];
@@ -256,9 +258,9 @@ export class CliParser<T extends Array<ElemType>> {
 
       const a = args[i];
 
-      if(prev && a.startsWith('-')){
-        throw 'Expected a value but got an option instead.';
-      }
+      // if(prev && a.startsWith('-')){
+      //   throw chalk.magenta(`Expected a value but got an option instead: ${a}`);
+      // }
 
       if (prev) {
 
@@ -291,6 +293,7 @@ export class CliParser<T extends Array<ElemType>> {
           throw new Error('No type matched. Fallthrough.');
         }
 
+
         const name = prev.name;
 
         if(g){
@@ -301,14 +304,16 @@ export class CliParser<T extends Array<ElemType>> {
 
         if (CliParser.arrays.includes(<Type>prev.type)) {
           ret[name].push(v);
+          prev = null;
           continue;
         }
 
         if (name in ret) {
           throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
         }
-        ret[name] = v;
+
         prev = null;
+        ret[name] = v;
         continue;
       }
 
@@ -383,7 +388,15 @@ export class CliParser<T extends Array<ElemType>> {
           throw chalk.magenta('Could not find hash val for name: ') + longNameHashVal;
         }
 
-        if (t.type !== Type.Boolean && t.type !== Type.ArrayOfBoolean) {
+        const originalName = longNameHashVal.name;
+
+        if (shortHashVal.type === Type.Boolean) {
+          ret[originalName] = true;
+        }
+        else if (shortHashVal.type === Type.ArrayOfBoolean) {
+          ret[originalName].push(true);
+        }
+        else{
           if (j < keys.length - 1) {
             throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${a}`);
           }
@@ -394,24 +407,20 @@ export class CliParser<T extends Array<ElemType>> {
           c = t;
         }
 
-
-        const originalName = longNameHashVal.name;
-
-        if (shortHashVal.type === Type.Boolean) {
-          ret[originalName] = true;
-        }
-        else if (shortHashVal.type === Type.ArrayOfBoolean) {
-          ret[originalName].push(true);
-        }
-
         g[originalName] = true;
 
       }
 
+      console.log('shorties:', shorties);
+
       if(c){
         prev = c;
+        console.log('checking args:', args[i+1]);
+        if (!args[i + 1]) {
+          throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(c));
+        }
       }
-      else if(Object.keys(g).length > 0){
+      else {
         groups.push(g);
       }
 

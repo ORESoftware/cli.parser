@@ -43,6 +43,13 @@ const options = asOptions([
     help: 'This is how we do it, friday night and I feel alright.'
   },
 
+  {
+    name: 'N',
+    short: 'n',
+    type: Type.Number,
+    help: 'This is how we do it, friday night and I feel alright.'
+  },
+
  {
     name: 'dog',
     short: 'x',
