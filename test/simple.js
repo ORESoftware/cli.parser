@@ -95,11 +95,11 @@ Test.create(b => {
     {
       expectedExitCode: 0,
       args: [],
-    
+      
       env: {
         expected_results: {
           bbb: [],
-          ccC:[],
+          ccC: [],
           Tall: [],
           dog: []
         },
@@ -110,13 +110,13 @@ Test.create(b => {
             short: 'a',
             type: Type.Boolean
           },
-  
+          
           {
             name: 'zoomBar',
             short: 'z',
             type: Type.String
           },
-  
+          
           {
             name: 'foo',
             short: 'f',
@@ -128,34 +128,34 @@ Test.create(b => {
             short: 'b',
             type: Type.ArrayOfBoolean
           },
-  
+          
           {
             name: 'ccC',
             short: 'c',
             type: Type.SeparatedStrings,
             separator: ','
           },
-  
+          
           {
             name: 'Tall',
             short: 'T',
             type: Type.ArrayOfBoolean,
             help: 'This is how we do it, friday night and I feel alright.'
           },
-  
+          
           {
             name: 'N',
             short: 'n',
             type: Type.Number,
             help: 'This is how we do it, friday night and I feel alright.'
           },
-  
+          
           {
             name: 'dog',
             short: 'x',
             type: Type.ArrayOfString
           }
-
+        
         ]
       }
     },
@@ -175,6 +175,32 @@ Test.create(b => {
             name: 'u',
             short: 'v',
             type: Type.ArrayOfBoolean
+          }
+        ]
+      }
+    },
+    
+    {
+      //duplication SHORT name v
+      args: ['--foo-car', '1', '--fo-ocar', '2', '--fo-Ocar', '3'],
+      env: {
+        expected_results: {
+          'foo-car': '1',
+          'fo-ocar': '2',
+          'fo-Ocar': '3'
+        },
+        cli_options: [
+          {
+            name: 'foo-car',
+            type: Type.String
+          },
+          {
+            name: 'fo-ocar',
+            type: Type.String
+          },
+          {
+            name: 'fo-Ocar',
+            type: Type.String
           }
         ]
       }
