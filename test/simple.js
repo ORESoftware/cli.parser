@@ -182,12 +182,12 @@ Test.create(b => {
     
     {
       //duplication SHORT name v
-      args: ['--foo-car', '1', '--fo-ocar', '2', '--fo-Ocar', '3'],
+      args: ['--foo-car', '1', '--fo-ocar', '2', '--fooc-ar', '3'],
       env: {
         expected_results: {
           'foo-car': '1',
           'fo-ocar': '2',
-          'fo-Ocar': '3'
+          'fooc-ar': '3'
         },
         cli_options: [
           {
@@ -199,7 +199,7 @@ Test.create(b => {
             type: Type.String
           },
           {
-            name: 'fo-Ocar',
+            name: 'fooc-ar',
             type: Type.String
           }
         ]
