@@ -86,10 +86,16 @@ export interface CliParserOptions {
   allowUnknown: boolean
 }
 
-export type ParsedType = string | number | boolean | Array<string> | Array<number> | Array<boolean>
+export type ParsedType = Date | string | number | boolean | Array<string> | Array<number> | Array<boolean> | Array<Date>
 
 export interface CliParserGroup {
   [key:string]: ParsedType
+}
+
+export interface CliParserOrder {
+  name: string,
+  value: ParsedType,
+  from: 'env' | 'argv'
 }
 
 export class CliParser<T extends Array<ElemType>> {
@@ -98,8 +104,8 @@ export class CliParser<T extends Array<ElemType>> {
   private readonly opts: OptionsToType<T>;
   private readonly parserOpts: CliParserOptions;
 
-  static separators = [Type.SeparatedBooleans, Type.SeparatedIntegers, Type.SeparatedStrings, Type.SeparatedNumbers];
-  static arrays = [Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger];
+  static separators = [Type.SeparatedBooleans, Type.SeparatedStrings, Type.SeparatedIntegers, Type.SeparatedNumbers];
+  static arrays = [Type.ArrayOfBoolean, Type.ArrayOfString, Type.ArrayOfInteger, Type.ArrayOfNumber];
 
   allowUnknown = false;
 
@@ -125,8 +131,8 @@ export class CliParser<T extends Array<ElemType>> {
         assert(v.name && typeof v.name === 'string',
           `${JSON.stringify(v)} is missing a name field, or the field is not a string.`);
 
-        assert(!/-{2}/.test(v.name), `A "name" field cannot have more than one consecutive hyphen. See: ${chalk.bold(v.name)}.`);
-        assert(!/_{2}/.test(v.name), `A "name" field cannot have more than one consecutive underscore. See: ${chalk.bold(v.name)}.`);
+        assert(!/-{2}/.test(v.name), `A "name" field cannot have consecutive hyphens. See: ${chalk.bold(v.name)}.`);
+        assert(!/_{2}/.test(v.name), `A "name" field cannot have consecutive underscores. See: ${chalk.bold(v.name)}.`);
 
         assert(!v.name.startsWith('-'), 'A "name" field cannot start with a - hyphen character.');
 
@@ -140,6 +146,7 @@ export class CliParser<T extends Array<ElemType>> {
         }
 
         const clean = this.getCleanOpt(v.name);
+        
         if (set[clean]) {
           throw `Duplication of option for "name" => '${v.name}'.`;
         }
@@ -228,9 +235,13 @@ export class CliParser<T extends Array<ElemType>> {
     const ret = {} as { [key: string]: any };
     const values: Array<string> = [];
     const groups: Array<CliParserGroup> = [];
+    const order : Array<CliParserOrder> = [];
 
     this.options.forEach(v => {
       if (CliParser.arrays.includes(<Type>v.type)) {
+        ret[v.name] = [];
+      }
+      if (CliParser.separators.includes(<Type>v.type)) {
         ret[v.name] = [];
       }
     });
@@ -258,9 +269,9 @@ export class CliParser<T extends Array<ElemType>> {
 
       const a = args[i];
 
-      // if(prev && a.startsWith('-')){
-      //   throw chalk.magenta(`Expected a value but got an option instead: ${a}`);
-      // }
+      if(prev && a.startsWith('-')){
+        throw chalk.magenta(`Expected a value but got an option instead: ${a}`);
+      }
 
       if (prev) {
 
@@ -304,15 +315,18 @@ export class CliParser<T extends Array<ElemType>> {
 
         if (CliParser.arrays.includes(<Type>prev.type)) {
           ret[name].push(v);
+          order.push({name, value: v, from: 'argv'});
           prev = null;
           continue;
         }
 
         if (name in ret) {
+          console.log({name,ret});
           throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
         }
 
         prev = null;
+        order.push({name, value: v, from: 'argv'});
         ret[name] = v;
         continue;
       }
@@ -343,9 +357,11 @@ export class CliParser<T extends Array<ElemType>> {
 
         if (longOpt.type === Type.Boolean) {
           ret[longOpt.name] = true;
+          order.push({name: longOpt.name, value: true, from: 'argv'});
         }
         else if (longOpt.type === Type.ArrayOfBoolean) {
           ret[longOpt.name].push(true);
+          order.push({name: longOpt.name, value: true, from: 'argv'});
         }
         else {
           prev = longOpt;
@@ -392,9 +408,11 @@ export class CliParser<T extends Array<ElemType>> {
 
         if (shortHashVal.type === Type.Boolean) {
           ret[originalName] = true;
+          order.push({name: originalName, value: true, from: 'argv'});
         }
         else if (shortHashVal.type === Type.ArrayOfBoolean) {
           ret[originalName].push(true);
+          order.push({name: originalName, value: true, from: 'argv'});
         }
         else{
           if (j < keys.length - 1) {
@@ -408,14 +426,11 @@ export class CliParser<T extends Array<ElemType>> {
         }
 
         g[originalName] = true;
-
       }
 
-      console.log('shorties:', shorties);
-
+      
       if(c){
         prev = c;
-        console.log('checking args:', args[i+1]);
         if (!args[i + 1]) {
           throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(c));
         }
@@ -429,7 +444,8 @@ export class CliParser<T extends Array<ElemType>> {
     return {
       opts: <OptionsToType<T>>ret,
       values,
-      groups
+      groups,
+      order
     };
   }
 }

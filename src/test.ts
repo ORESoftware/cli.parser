@@ -46,7 +46,7 @@ const options = asOptions([
   {
     name: 'N',
     short: 'n',
-    type: Type.Number,
+    type: Type.ArrayOfNumber,
     help: 'This is how we do it, friday night and I feel alright.'
   },
 
@@ -60,9 +60,10 @@ const options = asOptions([
 
 const p = new CliParser(options);
 
-const {opts, values, groups} = p.parse();
+const {opts, values, groups, order} = p.parse();
 
 
+console.log('order:', order);
 console.log('groups:', groups);
 console.log('opts:', opts);
 console.log('values:', values);

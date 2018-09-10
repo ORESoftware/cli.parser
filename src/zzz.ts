@@ -48,7 +48,7 @@ f.baz.xxx = false; // compiles
 
 f.add({name: 'uuu', type: Type.String});
 
-f.baz.uuu = 'z';
+// f.baz.uuu = 'z';
 
 
 
