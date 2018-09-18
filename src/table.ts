@@ -111,7 +111,7 @@ export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliPa
       getNames(v),
       chalk.bold.gray(v.type + `${getSeparatedString(v)}`),
       chalk.italic(wrapString(85, v.help || ''))
-    ])
+    ]);
   });
   
   return String(table)
