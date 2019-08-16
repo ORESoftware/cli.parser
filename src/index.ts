@@ -46,11 +46,6 @@ export enum Type {
   SeparatedBooleans = 'SeparatedIntegers'
 }
 
-// const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
-//
-//
-// type OptionsToType<T extends Array<{ name: keyof any, type: keyof TypeMapping }>>
-//   = { [K in T[number]['name']]: TypeMapping[Extract<T[number], { name: K }>['type']] }
 
 export interface ElemType<T = any> {
   name: string,
@@ -60,7 +55,8 @@ export interface ElemType<T = any> {
   default?: any,
   separator?: string,
   env?: string | Array<string>,
-  help?: string
+  help?: string,
+  description?: string
 }
 
 export const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
@@ -168,8 +164,7 @@ export class CliParser<T extends Array<ElemType>> {
           set[clean] = set[v.short] = true;
         }
       }
-    }
-    catch (e) {
+    } catch (e) {
       throw chalk.magenta(e);
     }
   }
@@ -180,7 +175,7 @@ export class CliParser<T extends Array<ElemType>> {
       v = v.slice(1);
     }
     
-    return v.toLowerCase()
+    return v.toLowerCase();
   }
   
   static getSpreadedArray(v: Array<string>): Array<string> {
@@ -224,7 +219,7 @@ export class CliParser<T extends Array<ElemType>> {
     return getTable(this.options, this.parserOpts, v);
   }
   
-  parse(argv?: Array<string>) {
+  parse(argv: Array<string>) {
     
     if (!argv) {
       argv = process.argv;
@@ -235,28 +230,24 @@ export class CliParser<T extends Array<ElemType>> {
     }
     
     assert(Array.isArray(argv), 'argv is not an array.');
-    argv.forEach(v => {
-      assert.strictEqual(typeof v, 'string', `Element in the argv array is not a string type => ${util.inspect(v)}`);
-    });
     
-    console.log('argv:', argv);
+    for (let v of argv) {
+      assert.strictEqual(typeof v, 'string', `Element in the argv array is not a string type => ${util.inspect(v)}`);
+    }
     
     const opts: { [index: string]: any } = {};
     const values: Array<string> = [];
     const groups: Array<CliParserGroup> = [];
     const order: Array<CliParserOrder> = [];
     
-    this.options.forEach(v => {
+    for (const v of this.options) {
       if (CliParser.arrays.includes(<Type>v.type)) {
         opts[v.name] = [];
       }
       if (CliParser.separators.includes(<Type>v.type)) {
         opts[v.name] = [];
       }
-    });
-    
-    
-    console.log('ret prepped:', opts);
+    }
     
     const nameHash = <Parsed>{};
     const shortNameHash = <Parsed>{};
@@ -269,23 +260,13 @@ export class CliParser<T extends Array<ElemType>> {
       if (o.short) {
         shortNameHash[o.short] = Object.assign({}, o, {cleanName});
       }
-      if(o.env){
+      if (o.env) {
         envHash[o.env as string] = Object.assign({}, o, {cleanName});
       }
     }
-  
-    Object.keys(this.env).forEach(k => {
-      
-      if(k in envHash){
-        const v = envHash[k];
-        
-        
-      }
-      
-    });
+    
     
     const args = CliParser.getSpreadedArray(argv);
-    console.log('these args:', args);
     
     let prev: ParsedValue = null, g: CliParserGroup = null;
     
@@ -303,14 +284,11 @@ export class CliParser<T extends Array<ElemType>> {
         
         if (prev.type === Type.String || prev.type === Type.ArrayOfString) {
           v = a.slice(0);
-        }
-        else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
+        } else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
           v = Number.parseInt(a);
-        }
-        else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
+        } else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
           v = Number.parseFloat(a);
-        }
-        else if (CliParser.separators.includes(<Type>prev.type)) {
+        } else if (CliParser.separators.includes(<Type>prev.type)) {
           v = a.split(prev.separator || ',').map(v => String(v || '').trim()).filter(Boolean).map(v => {
             switch (<Type>prev.type) {
               case Type.SeparatedNumbers:
@@ -323,8 +301,7 @@ export class CliParser<T extends Array<ElemType>> {
             
             return v;
           });
-        }
-        else {
+        } else {
           throw new Error('No type matched. Fallthrough.');
         }
         
@@ -379,12 +356,10 @@ export class CliParser<T extends Array<ElemType>> {
         if (longOpt.type === Type.Boolean) {
           opts[longOpt.name] = true;
           order.push({name: longOpt.name, value: true, from: 'argv'});
-        }
-        else if (longOpt.type === Type.ArrayOfBoolean) {
+        } else if (longOpt.type === Type.ArrayOfBoolean) {
           opts[longOpt.name].push(true);
           order.push({name: longOpt.name, value: true, from: 'argv'});
-        }
-        else {
+        } else {
           prev = longOpt;
           if (!args[i + 1]) {
             throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(longOpt));
@@ -430,12 +405,10 @@ export class CliParser<T extends Array<ElemType>> {
         if (shortHashVal.type === Type.Boolean) {
           opts[originalName] = true;
           order.push({name: originalName, value: true, from: 'argv'});
-        }
-        else if (shortHashVal.type === Type.ArrayOfBoolean) {
+        } else if (shortHashVal.type === Type.ArrayOfBoolean) {
           opts[originalName].push(true);
           order.push({name: originalName, value: true, from: 'argv'});
-        }
-        else {
+        } else {
           if (j < keys.length - 1) {
             throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${a}`);
           }
@@ -454,8 +427,7 @@ export class CliParser<T extends Array<ElemType>> {
         if (!args[i + 1]) {
           throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(c));
         }
-      }
-      else {
+      } else {
         groups.push(g);
       }
       
@@ -471,6 +443,7 @@ export class CliParser<T extends Array<ElemType>> {
 }
 
 
+export const Parser = CliParser;
 
 
 
