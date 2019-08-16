@@ -181,7 +181,6 @@ Test.create(b => {
     },
     
     {
-      //duplication SHORT name v
       args: ['--foo-car', '1', '--fo-ocar', '2', '--fooc-ar', '3'],
       env: {
         expected_results: {

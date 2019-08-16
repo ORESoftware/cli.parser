@@ -30,13 +30,15 @@ export const findJSONFiles = (pth: string): object => {
   const values: Array<object> = [];
   assert(path.isAbsolute(pth), 'pth must be an absolute path.');
   
-  while (pth.startsWith(process.env.HOME)) {
+  const home = process.env.HOME;
+  
+  while (pth.startsWith(home)) {
     
     try {
       values.push(require(path.resolve(pth, '.cli.json')))
     }
     catch (err) {
-      if(/parse/i.test(err.message)){
+      if(/parse/i.test(err.message) && !/Cannot find module/i.test(err.message)){
         console.error(chalk.magenta(err));
       }
     }

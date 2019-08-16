@@ -120,8 +120,7 @@ export class CliParser<T extends Array<ElemType>> {
     try {
       
       if ('allowUnknown' in this.parserOpts) {
-        assert([undefined, true, false].includes(this.parserOpts.allowUnknown),
-          '"allowUnknown" option must be a boolean.');
+        assert([undefined, true, false].includes(this.parserOpts.allowUnknown), '"allowUnknown" option must be a boolean.');
       }
       
       this.allowUnknown = this.parserOpts.allowUnknown || false;
