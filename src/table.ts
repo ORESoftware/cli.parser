@@ -4,6 +4,7 @@ import {CliParser, CliParserHelpOpts, CliParserOptions, ElemType, Type} from './
 // const AsciiTable = require('ascii-table');
 import chalk from 'chalk';
 import {flattenDeep, wrapString} from './utils';
+import * as util from "util";
 
 const {table} = require('table');
 const Table = require('cli-table2');
@@ -98,7 +99,7 @@ export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliPa
   });
   
   table.push([
-    {colSpan: 3, content: o.commandName || 'node foo.js [OPTIONS]'}
+    {colSpan: 3, content: chalk.bold('Command: ') + (o.commandName || 'node foo.js [OPTIONS];')}
   ]);
   
   table.push([
@@ -111,6 +112,22 @@ export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliPa
       chalk.bold.gray(v.type + `${getSeparatedString(v)}`),
       chalk.italic(wrapString(85, v.help || v.description || ''))
     ])
+  }
+  
+  const examples = flattenDeep([o.commandExample, o.commandExamples])
+  .map(v => String(v || '').trim())
+  .filter(Boolean);
+  
+  if (examples.length > 0) {
+    table.push([
+      {colSpan: 3, content: chalk.bold('Command Examples:')}
+    ]);
+    
+    for (const e of examples) {
+      table.push([
+        {colSpan: 3, content: typeof e === 'string' ? e : util.inspect(e)}
+      ]);
+    }
   }
   
   return String(table)
@@ -128,7 +145,7 @@ export const getTableOfRootCommands = (options: Array<ElemType>, o: CliParserOpt
   });
   
   table.push([
-    {colSpan: 3, content: o.commandName || 'node foo.js [OPTIONS]'}
+    {colSpan: 3, content: o.commandName || 'node foo.js [OPTIONS]; ' + o.commandExample || ''}
   ]);
   
   table.push([

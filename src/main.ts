@@ -78,7 +78,8 @@ export interface CliParserHelpOpts {
 
 export interface CliParserOptions {
   commandName: string,
-  commandExample: string
+  commandExample: string,
+  commandExamples: Array<string>,
   allowUnknown: boolean,
   useJSONEnv: boolean
 }
