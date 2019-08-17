@@ -358,7 +358,7 @@ export class CliParser<T extends Array<ElemType>> {
       }
       
       if (elem.startsWith('-')) {
-        const index = elem.indexOf('=');
+        const index = elem.indexOf('='); // only the first inded of =
         if (index > -1) {
           const first = elem.slice(0, index).trim();
           const second = elem.slice(index + 1).trim();
