@@ -54,7 +54,7 @@ export interface ElemType<T = any> {
   type: keyof TypeMapping,
   default?: any,
   separator?: string,
-  env?: string | Array<string>,
+  env?: string,
   help?: string,
   description?: string
 }
@@ -95,6 +95,31 @@ export interface CliParserOrder {
   from: 'env' | 'argv'
 }
 
+const checkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+  assert(Array.isArray(v.default), `type is array, so default value needs to be array for option: ${util.inspect(v)}`);
+  for (const x of v.default) {
+    assert(typeof x === t, `Type of array element needs to be: '${t}'`);
+    f && f(x);
+  }
+};
+
+
+const checkSepkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+  
+  const def = v.default;
+  const sep = v.separator || ',';
+  
+  assert(typeof def === 'string', `The type is "${sep}" separated values, but the default value is not a string ${v}`);
+  
+  const split = def.split(sep);
+  for (const x of split) {
+    assert(typeof x === t, `Type of array element needs to be: '${t}'`);
+    f && f(x);
+  }
+  
+};
+
+
 export class CliParser<T extends Array<ElemType>> {
   
   private readonly options: T;
@@ -130,8 +155,7 @@ export class CliParser<T extends Array<ElemType>> {
       
       const set = {} as { [key: string]: true };
       
-      for (let i = 0; i < o.length; i++) {
-        const v = o[i];
+      for (const v of o) {
         
         assert(v.name && typeof v.name === 'string',
           `${JSON.stringify(v)} is missing a name field, or the field is not a string.`);
@@ -163,8 +187,64 @@ export class CliParser<T extends Array<ElemType>> {
         if (v.short) {
           set[clean] = set[v.short] = true;
         }
+        
+        if ('default' in v) {
+          switch (v.type) {
+            
+            case "ArrayOfBoolean":
+              checkArray(v, 'boolean');
+              break;
+              
+            case "ArrayOfNumber":
+              checkArray(v, 'number');
+              break;
+              
+            case "ArrayOfInteger":
+              checkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
+              break;
+              
+            case "ArrayOfString":
+              checkArray(v, 'string');
+              break;
+              
+            case "Number":
+              assert(typeof v.default === 'number', `Default value must be a number: ${util.inspect(v)}`);
+              break;
+              
+            case "String":
+              assert(typeof v.default === 'string', `Default value must be a string: ${util.inspect(v)}`);
+              break;
+              
+            case "Boolean":
+              assert(typeof v.default === 'boolean', `Default value must be a boolean: ${util.inspect(v)}`);
+              break;
+              
+            case "Integer":
+              assert(Number.isInteger(v.default), `Default value must be an integer: ${util.inspect(v)}`);
+              break;
+              
+            case "JSON":
+              try {
+                JSON.parse(v.default);
+              }
+              catch (err) {
+                throw `Could not call JSON.parse on default property, even though the type is "JSON": ${util.inspect(v)}`
+              }
+              break;
+              
+            case "SeparatedBooleans":
+              checkSepkArray(v, 'boolean');
+              break;
+              
+            case "SeparatedIntegers":
+              checkSepkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
+              break;
+            
+          }
+        }
       }
-    } catch (e) {
+    }
+    catch (e) {
       throw chalk.magenta(e);
     }
   }
@@ -175,7 +255,7 @@ export class CliParser<T extends Array<ElemType>> {
       v = v.slice(1);
     }
     
-    return v.toLowerCase();
+    return v;  // .toLowerCase(); // .replace(/-/g, '_');
   }
   
   static getSpreadedArray(v: Array<string>): Array<string> {
@@ -253,8 +333,7 @@ export class CliParser<T extends Array<ElemType>> {
     const shortNameHash = <Parsed>{};
     const envHash = <Parsed>{};
     
-    for (let i = 0; i < this.options.length; i++) {
-      const o = this.options[i];
+    for (const o of this.options) {
       const cleanName = CliParser.getCleanOpt(o.name);
       nameHash[cleanName] = Object.assign({}, o, {cleanName});
       if (o.short) {
@@ -275,6 +354,7 @@ export class CliParser<T extends Array<ElemType>> {
       const a = args[i];
       
       if (prev && a.startsWith('-')) {
+        // TODO: we need check if the value is one of our options
         throw chalk.magenta(`Expected a value but got an option instead: ${a}`);
       }
       
@@ -284,11 +364,14 @@ export class CliParser<T extends Array<ElemType>> {
         
         if (prev.type === Type.String || prev.type === Type.ArrayOfString) {
           v = a.slice(0);
-        } else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
+        }
+        else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
           v = Number.parseInt(a);
-        } else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
+        }
+        else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
           v = Number.parseFloat(a);
-        } else if (CliParser.separators.includes(<Type>prev.type)) {
+        }
+        else if (CliParser.separators.includes(<Type>prev.type)) {
           v = a.split(prev.separator || ',').map(v => String(v || '').trim()).filter(Boolean).map(v => {
             switch (<Type>prev.type) {
               case Type.SeparatedNumbers:
@@ -301,11 +384,12 @@ export class CliParser<T extends Array<ElemType>> {
             
             return v;
           });
-        } else {
+        }
+        else {
           throw new Error('No type matched. Fallthrough.');
         }
         
-        const name = prev.name;
+        const name = CliParser.getCleanOpt(prev.name);
         
         if (g) {
           g[name] = v;
@@ -325,9 +409,9 @@ export class CliParser<T extends Array<ElemType>> {
           throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
         }
         
-        prev = null;
         order.push({name, value: v, from: 'argv'});
         opts[name] = v;
+        prev = null;
         continue;
       }
       
@@ -353,13 +437,17 @@ export class CliParser<T extends Array<ElemType>> {
           throw chalk.magenta('Could not find option with name: ' + a);
         }
         
+        const name = CliParser.getCleanOpt(longOpt.name);
+        
         if (longOpt.type === Type.Boolean) {
-          opts[longOpt.name] = true;
-          order.push({name: longOpt.name, value: true, from: 'argv'});
-        } else if (longOpt.type === Type.ArrayOfBoolean) {
-          opts[longOpt.name].push(true);
-          order.push({name: longOpt.name, value: true, from: 'argv'});
-        } else {
+          opts[name] = true;
+          order.push({name, value: true, from: 'argv'});
+        }
+        else if (longOpt.type === Type.ArrayOfBoolean) {
+          opts[name].push(true);
+          order.push({name, value: true, from: 'argv'});
+        }
+        else {
           prev = longOpt;
           if (!args[i + 1]) {
             throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(longOpt));
@@ -405,10 +493,12 @@ export class CliParser<T extends Array<ElemType>> {
         if (shortHashVal.type === Type.Boolean) {
           opts[originalName] = true;
           order.push({name: originalName, value: true, from: 'argv'});
-        } else if (shortHashVal.type === Type.ArrayOfBoolean) {
+        }
+        else if (shortHashVal.type === Type.ArrayOfBoolean) {
           opts[originalName].push(true);
           order.push({name: originalName, value: true, from: 'argv'});
-        } else {
+        }
+        else {
           if (j < keys.length - 1) {
             throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${a}`);
           }
@@ -427,11 +517,37 @@ export class CliParser<T extends Array<ElemType>> {
         if (!args[i + 1]) {
           throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(c));
         }
-      } else {
+      }
+      else {
         groups.push(g);
       }
       
     }
+    
+    
+    for (const o of this.options) {
+      const cleanName = CliParser.getCleanOpt(o.name);
+      if (!(cleanName in opts)) {
+        if (o.env && o.env in process.env) {
+          
+          try {
+            var val = JSON.parse(process.env[o.env]);
+          }
+          catch (err) {
+            throw `Could not parse env variable with name: ${o.env}:\n${err.message || err}`
+          }
+          
+          if (!('value' in val)) {
+            throw 'You must use an JSON string with a property named "value" in your env variable.'
+          }
+          opts[cleanName] = val.value;
+        }
+        else if ('default' in o) {
+          opts[cleanName] = JSON.parse(JSON.stringify(o.default))
+        }
+      }
+    }
+    
     
     return {
       opts: <OptionsToType<T>>opts,
