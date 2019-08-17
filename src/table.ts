@@ -35,25 +35,25 @@ const getSeparatedString = (v: ElemType): string => {
 
 const mapEnv = (env: string | Array<string>, type: Type, sep: string): string => {
   return flattenDeep([env]).map(v => String(v || '').trim()).filter(Boolean).map(v => {
-      
-      sep = sep || ',';
-      
-      switch (type) {
-        case Type.String:
-        case Type.ArrayOfString:
-        case Type.SeparatedStrings:
-        case Type.SeparatedBooleans:
-        case Type.ArrayOfNumber:
-        case Type.SeparatedIntegers:
-        case Type.ArrayOfBoolean:
-          return v + `=x${sep}y${sep}z`;
-        case Type.Boolean:
-          return v + '=true/false/1/0'
-      }
-      
-      return v + '=ARG';
-    })
-    .join('\n');
+    
+    sep = sep || ',';
+    
+    switch (type) {
+      case Type.String:
+      case Type.ArrayOfString:
+      case Type.SeparatedStrings:
+      case Type.SeparatedBooleans:
+      case Type.ArrayOfNumber:
+      case Type.SeparatedIntegers:
+      case Type.ArrayOfBoolean:
+        return v + `=x${sep}y${sep}z`;
+      case Type.Boolean:
+        return v + '=true/false/1/0'
+    }
+    
+    return v + '=ARG';
+  })
+  .join('\n');
 };
 
 const getNames = (v: ElemType): string => {
@@ -62,9 +62,10 @@ const getNames = (v: ElemType): string => {
     '--' + camel2Dash(v.name),
     v.env ? mapEnv(v.env, <Type>v.type, v.separator) : ''
   ]
-    .map(v => String(v || '').trim())
-    .filter(Boolean)
-    .join('\n')
+  .map(v => String(v || '').trim())
+  .filter(Boolean)
+  .join('\n')
+  
 };
 
 const camel2Dash = (v: string): string => {
@@ -115,9 +116,39 @@ export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliPa
   }
   
   return String(table)
-    .split('\n')
-    .map(v => '  ' + v)
-    .join('\n');
+  .split('\n')
+  .map(v => '  ' + v)
+  .join('\n');
+  
+};
+
+
+export const getTableOfRootCommands = (options: Array<ElemType>, o: CliParserOptions, v: CliParserHelpOpts) => {
+  
+  const table = new Table({
+    colWidths: [30, 25, 95]
+  });
+  
+  table.push([
+    {colSpan: 3, content: o.commandName || 'node foo.js [OPTIONS]'}
+  ]);
+  
+  table.push([
+    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Help')
+  ]);
+  
+  for (const v of options) {
+    table.push([
+      getNames(v),
+      chalk.bold.gray(v.type + `${getSeparatedString(v)}`),
+      chalk.italic(wrapString(85, v.help || v.description || ''))
+    ])
+  }
+  
+  return String(table)
+  .split('\n')
+  .map(v => '  ' + v)
+  .join('\n');
   
 };
 
