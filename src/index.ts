@@ -96,8 +96,42 @@ export interface CliParserOrder {
 }
 
 const checkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+  
+  if (!('default' in v)) {
+    return;
+  }
+  
   assert(Array.isArray(v.default), `type is array, so default value needs to be array for option: ${util.inspect(v)}`);
   for (const x of v.default) {
+    assert(typeof x === t, `Type of array element needs to be: '${t}'`);
+    f && f(x);
+  }
+};
+
+const checkJSONArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+  
+  if (!('env' in v)) {
+    return;
+  }
+  
+  if (!(v.env in process.env)) {
+    return;
+  }
+  
+  if (process.env[v.env] === '') {
+    return;
+  }
+  
+  try {
+    var e = JSON.parse(process.env[v.env]);
+  }
+  catch (err) {
+    throw `Could not call JSON.parse on ${v.env}, expecting an array.`;
+  }
+  
+  assert(Array.isArray(e.value), `type is array, so default value needs to be array for option: ${util.inspect(v)}`);
+  
+  for (const x of e.value) {
     assert(typeof x === t, `Type of array element needs to be: '${t}'`);
     f && f(x);
   }
@@ -106,12 +140,50 @@ const checkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
 
 const checkSepkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
   
+  if (!('default' in v)) {
+    return;
+  }
+  
   const def = v.default;
   const sep = v.separator || ',';
   
   assert(typeof def === 'string', `The type is "${sep}" separated values, but the default value is not a string ${v}`);
   
   const split = def.split(sep);
+  for (const x of split) {
+    assert(typeof x === t, `Type of array element needs to be: '${t}'`);
+    f && f(x);
+  }
+  
+};
+
+
+const checkJSONSepArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+  
+  if (!('env' in v)) {
+    return;
+  }
+  
+  if (!(v.env in process.env)) {
+    return;
+  }
+  
+  if (process.env[v.env] === '') {
+    return;
+  }
+  
+  try {
+    var e = JSON.parse(process.env[v.env]);
+  }
+  catch (err) {
+    throw `Could not call JSON.parse on ${v.env}, expecting an array.`;
+  }
+  
+  const sep = v.separator || ',';
+  
+  assert(typeof e.value === 'string', `The type is "${sep}" separated values, but the default value is not a string ${v}`);
+  
+  const split = e.value.split(sep);
   for (const x of split) {
     assert(typeof x === t, `Type of array element needs to be: '${t}'`);
     f && f(x);
@@ -188,60 +260,71 @@ export class CliParser<T extends Array<ElemType>> {
           set[clean] = set[v.short] = true;
         }
         
-        if ('default' in v) {
-          switch (v.type) {
-            
-            case "ArrayOfBoolean":
-              checkArray(v, 'boolean');
-              break;
-              
-            case "ArrayOfNumber":
-              checkArray(v, 'number');
-              break;
-              
-            case "ArrayOfInteger":
-              checkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
-              break;
-              
-            case "ArrayOfString":
-              checkArray(v, 'string');
-              break;
-              
-            case "Number":
-              assert(typeof v.default === 'number', `Default value must be a number: ${util.inspect(v)}`);
-              break;
-              
-            case "String":
-              assert(typeof v.default === 'string', `Default value must be a string: ${util.inspect(v)}`);
-              break;
-              
-            case "Boolean":
-              assert(typeof v.default === 'boolean', `Default value must be a boolean: ${util.inspect(v)}`);
-              break;
-              
-            case "Integer":
-              assert(Number.isInteger(v.default), `Default value must be an integer: ${util.inspect(v)}`);
-              break;
-              
-            case "JSON":
-              try {
-                JSON.parse(v.default);
-              }
-              catch (err) {
-                throw `Could not call JSON.parse on default property, even though the type is "JSON": ${util.inspect(v)}`
-              }
-              break;
-              
-            case "SeparatedBooleans":
-              checkSepkArray(v, 'boolean');
-              break;
-              
-            case "SeparatedIntegers":
-              checkSepkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
-              break;
-            
-          }
+        
+        switch (v.type) {
+          
+          case "ArrayOfBoolean":
+            checkArray(v, 'boolean');
+            break;
+          
+          case "ArrayOfNumber":
+            checkArray(v, 'number');
+            break;
+          
+          case "ArrayOfInteger":
+            checkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
+            break;
+          
+          case "ArrayOfString":
+            checkArray(v, 'string');
+            break;
+          
+          case "Number":
+            'default' in v && assert(typeof v.default === 'number', `Default value must be a number: ${util.inspect(v)}`);
+            break;
+          
+          case "String":
+            'default' in v && assert(typeof v.default === 'string', `Default value must be a string: ${util.inspect(v)}`);
+            break;
+          
+          case "Boolean":
+            'default' in v && assert(typeof v.default === 'boolean', `Default value must be a boolean: ${util.inspect(v)}`);
+            break;
+          
+          case "Integer":
+            'default' in v && assert(Number.isInteger(v.default), `Default value must be an integer: ${util.inspect(v)}`);
+            break;
+          
+          case "JSON":
+            try {
+              'default' in v && JSON.parse(v.default);
+            }
+            catch (err) {
+              throw `Could not call JSON.parse on default property, even though the type is "JSON": ${util.inspect(v)}`
+            }
+            break;
+          
+          case "SeparatedBooleans":
+            checkSepkArray(v, 'boolean');
+            break;
+          
+          case "SeparatedIntegers":
+            checkSepkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
+            break;
+          
+          case "SeparatedNumbers":
+            checkSepkArray(v, 'number');
+            break;
+          
+          case "SeparatedStrings":
+            checkSepkArray(v, 'string');
+            break;
+          
+          default:
+            throw `The "type" property was not recognized on ${util.inspect(v)}, it must be one of: ${util.inspect(Type)}`
+          
         }
+        
       }
     }
     catch (e) {
