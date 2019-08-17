@@ -1,6 +1,6 @@
 'use strict';
 
-import {CliParser, CliParserHelpOpts, CliParserOptions, ElemType, Type} from './index';
+import {CliParser, CliParserHelpOpts, CliParserOptions, ElemType, Type} from './main';
 // const AsciiTable = require('ascii-table');
 import chalk from 'chalk';
 import {flattenDeep, wrapString} from './utils';
@@ -34,17 +34,20 @@ const getSeparatedString = (v: ElemType): string => {
 };
 
 const mapEnv = (env: string | Array<string>, type: Type, sep: string): string => {
+  
   return flattenDeep([env]).map(v => String(v || '').trim()).filter(Boolean).map(v => {
     
     sep = sep || ',';
     
     switch (type) {
       case Type.String:
-      case Type.ArrayOfString:
       case Type.SeparatedStrings:
       case Type.SeparatedBooleans:
-      case Type.ArrayOfNumber:
       case Type.SeparatedIntegers:
+      case Type.SeparatedNumbers:
+      case Type.ArrayOfInteger:
+      case Type.ArrayOfString:
+      case Type.ArrayOfNumber:
       case Type.ArrayOfBoolean:
         return v + `=x${sep}y${sep}z`;
       case Type.Boolean:
@@ -54,12 +57,13 @@ const mapEnv = (env: string | Array<string>, type: Type, sep: string): string =>
     return v + '=ARG';
   })
   .join('\n');
+  
 };
 
 const getNames = (v: ElemType): string => {
   return [
     v.short ? chalk.bold('-' + v.short) : '',
-    '--' + camel2Dash(v.name),
+    '--' + v.name,
     v.env ? mapEnv(v.env, <Type>v.type, v.separator) : ''
   ]
   .map(v => String(v || '').trim())
@@ -89,12 +93,6 @@ const camel2Dash = (v: string): string => {
 
 export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliParserHelpOpts) => {
   
-  // const data = [
-  //   ['0A', '0B', '0C'],
-  //   ['1A', '1B', '1C'],
-  //   ['2A', '2B', '2C']
-  // ];
-  
   const table = new Table({
     colWidths: [30, 25, 95]
   });
@@ -104,7 +102,7 @@ export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliPa
   ]);
   
   table.push([
-    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Help')
+    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Example')
   ]);
   
   for (const v of options) {
@@ -134,7 +132,7 @@ export const getTableOfRootCommands = (options: Array<ElemType>, o: CliParserOpt
   ]);
   
   table.push([
-    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Help')
+    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Example')
   ]);
   
   for (const v of options) {

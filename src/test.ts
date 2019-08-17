@@ -1,5 +1,7 @@
+'use strict';
+
 import {getTable} from './table';
-import {asOptions, CliParser, Type, ElemType} from './index';
+import {asOptions, CliParser, Type, ElemType} from './main';
 
 const typeOverride = <T>(v: ElemType) => <ElemType<T>>v;
 
