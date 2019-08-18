@@ -64,7 +64,7 @@ const mapEnv = (env: string | Array<string>, type: Type, sep: string): string =>
 const getNames = (v: ElemType<any>): string => {
   return [
     v.short ? chalk.bold('-' + v.short) : '',
-    '--' + v.name,
+    '--' + v.name.replace(/_/g, '-'),
     v.env ? mapEnv(v.env, <Type>v.type, v.separator) : ''
   ]
   .map(v => String(v || '').trim())

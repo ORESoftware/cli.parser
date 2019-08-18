@@ -9,6 +9,8 @@ import {getTable} from './table';
 import * as util from 'util';
 import {findJSONFiles} from './utils';
 import log from './logging'
+import {getCleanOpt} from "./utils";
+import {getSpreadedArray} from "./utils";
 
 export const r2gSmokeTest = function () {
   // r2g command line app uses this exported function
@@ -40,20 +42,20 @@ export enum Foo {
   JSONType
 }
 
-const TypeObj =  {
-  Boolean : 'Boolean',
-  String : 'String',
-  Number : 'Number',
-  Integer : 'Integer',
-  ArrayOfString : 'ArrayOfString',
-  ArrayOfBoolean : 'ArrayOfBoolean',
-  ArrayOfNumber : 'ArrayOfNumber',
-  ArrayOfInteger : 'ArrayOfInteger',
-  JSON : 'JSON',
-  SeparatedStrings : 'SeparatedStrings',
-  SeparatedNumbers : 'SeparatedNumbers',
-  SeparatedIntegers : 'SeparatedIntegers',
-  SeparatedBooleans : 'SeparatedBooleans'
+const TypeObj = {
+  Boolean: 'Boolean',
+  String: 'String',
+  Number: 'Number',
+  Integer: 'Integer',
+  ArrayOfString: 'ArrayOfString',
+  ArrayOfBoolean: 'ArrayOfBoolean',
+  ArrayOfNumber: 'ArrayOfNumber',
+  ArrayOfInteger: 'ArrayOfInteger',
+  JSON: 'JSON',
+  SeparatedStrings: 'SeparatedStrings',
+  SeparatedNumbers: 'SeparatedNumbers',
+  SeparatedIntegers: 'SeparatedIntegers',
+  SeparatedBooleans: 'SeparatedBooleans'
 };
 
 export enum Type {
@@ -72,7 +74,7 @@ export enum Type {
   SeparatedBooleans = 'SeparatedBooleans'
 }
 
-
+const defaultMod = Symbol('default.mod');
 
 export interface ElemType<T> {
   name: string,
@@ -84,13 +86,14 @@ export interface ElemType<T> {
   env?: string,
   help?: string,
   description?: string
+  [defaultMod]?: any
 }
 
 export const asOptions = <Z, K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping<Z> }>>(t: T) => t;
 
 export type OptionsToType<T extends Array<ElemType<any>>>
   = { [K in T[number]['name']]: TypeMapping<any>[Extract<T[number], { name: K }>['type']] }
-  
+
 
 export interface ParsedValue<Z> extends ElemType<Z> {
   cleanName: string
@@ -124,17 +127,19 @@ export interface CliParserOrder {
   from: 'env' | 'argv'
 }
 
-const checkArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
+const checkArray = (v: ElemType<any>, t: string, f?: (v: any) => void): Array<any> => {
   
   if (!('default' in v)) {
     return;
   }
   
   assert(Array.isArray(v.default), `type is array, so default value needs to be array for option: ${util.inspect(v)}`);
-  for (const x of v.default) {
+  
+  return v.default.map((x: any) => {
     assert(typeof x === t, `Type of array element needs to be: '${t}'`);
     f && f(x);
-  }
+    return x;
+  });
 };
 
 const checkJSONArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
@@ -167,7 +172,7 @@ const checkJSONArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
 };
 
 
-const checkSepkArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
+const checkSepkArray = (v: ElemType<any>, t: string, f?: (v: any) => void): Array<any> => {
   
   if (!('default' in v)) {
     return;
@@ -180,10 +185,14 @@ const checkSepkArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
   
   const split = String(def).split(sep).map(v => String(v || '').trim()).filter(Boolean);
   
-  for (const x of split) {
-    // assert(typeof x === t, `Type of array element needs to be: '${t}', but instead we got a different value type: ${util.inspect(v)}`);
+  return split.map((x: any) => {
+    if (v.type !== Type.SeparatedStrings) {
+      x = Boolean(JSON.parse(x));
+      assert(typeof x === t, `Type of array element needs to be: '${t}', but instead we got a different value type: ${util.inspect(v)}`);
+    }
     f && f(x);
-  }
+    return x;
+  });
   
 };
 
@@ -303,7 +312,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
           assert(/[A-Za-z]/.test(v.short), `"short" letter must be alphabetic (uppercase or lowercase. See: '${v.short}'.`);
         }
         
-        const clean = CliParser.getCleanOpt(v.name);
+        const clean = getCleanOpt(v.name);
         
         if (set[clean]) {
           throw `Duplication of option for "name" => '${v.name}'.`;
@@ -321,19 +330,19 @@ export class CliParser<T extends Array<ElemType<any>>> {
         switch (v.type) {
           
           case "ArrayOfBoolean":
-            checkArray(v, 'boolean');
+            v[defaultMod] = checkArray(v, 'boolean');
             break;
           
           case "ArrayOfNumber":
-            checkArray(v, 'number');
+            v[defaultMod] = checkArray(v, 'number');
             break;
           
           case "ArrayOfInteger":
-            checkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
+            v[defaultMod] = checkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
             break;
           
           case "ArrayOfString":
-            checkArray(v, 'string');
+            v[defaultMod] = checkArray(v, 'string');
             break;
           
           case "Number":
@@ -357,6 +366,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
               if ('default' in v) {
                 const x = JSON.parse(v.default);
                 assert(x && 'value' in x, 'JSON must have a "value" key/property.');
+                v[defaultMod] = x.value;
               }
             }
             catch (err) {
@@ -366,19 +376,19 @@ export class CliParser<T extends Array<ElemType<any>>> {
             break;
           
           case "SeparatedBooleans":
-            checkSepkArray(v, 'boolean');
+            v[defaultMod] = checkSepkArray(v, 'boolean');
             break;
           
           case "SeparatedIntegers":
-            checkSepkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
+            v[defaultMod] = checkSepkArray(v, 'number', v => assert(Number.isInteger(v), `Number must be an integer: ${util.inspect(v)}`));
             break;
           
           case "SeparatedNumbers":
-            checkSepkArray(v, 'number');
+            v[defaultMod] = checkSepkArray(v, 'number');
             break;
           
           case "SeparatedStrings":
-            checkSepkArray(v, 'string');
+            v[defaultMod] = checkSepkArray(v, 'string');
             break;
           
           default:
@@ -393,50 +403,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
     }
   }
   
-  static getCleanOpt(v: string) {
-    
-    while (v.startsWith('-')) {
-      v = v.slice(1);
-    }
-    
-    return v;  // .toLowerCase(); // .replace(/-/g, '_');
-  }
-  
-  static getSpreadedArray(v: Array<string>): Array<string> {
-    
-    const ret: Array<string> = [];
-    
-    for (let i = 0; i < v.length; i++) {
-      
-      const elem = v[i];
-      
-      if (elem.startsWith('–')) {
-        throw 'Your program has an "en-dash" instead of a hyphen - .';
-      }
-      
-      if (elem.startsWith('—')) {
-        throw 'Your program has an "em-dash" instead of a hyphen - .';
-      }
-      
-      if (elem.startsWith('-')) {
-        const index = elem.indexOf('='); // only the first inded of =
-        if (index > -1) {
-          const first = elem.slice(0, index).trim();
-          const second = elem.slice(index + 1).trim();
-          
-          if (first.length < 1 || second.length < 1) {
-            throw chalk.magenta('Malformed expression involving equals (=) sign, see: ' + elem);
-          }
-          ret.push(first, second);
-          continue;
-        }
-      }
-      
-      ret.push(elem);
-    }
-    
-    return ret;
-  }
+
   
   getHelpString(v?: CliParserHelpOpts) {
     v = <CliParserHelpOpts>(v || {});
@@ -464,21 +431,13 @@ export class CliParser<T extends Array<ElemType<any>>> {
     const groups: Array<CliParserGroup> = [];
     const order: Array<CliParserOrder> = [];
     
-    for (const v of this.options) {
-      if (CliParser.arrays.includes(<Type>v.type)) {
-        opts[v.name] = [];
-      }
-      if (CliParser.separators.includes(<Type>v.type)) {
-        opts[v.name] = [];
-      }
-    }
-    
+    // hashes are for checking for dupes
     const nameHash = <Parsed>{};
     const shortNameHash = <Parsed>{};
     const envHash = <Parsed>{};
     
     for (const o of this.options) {
-      const cleanName = CliParser.getCleanOpt(o.name);
+      const cleanName = getCleanOpt(o.name);
       nameHash[cleanName] = Object.assign({}, o, {cleanName});
       if (o.short) {
         shortNameHash[o.short] = Object.assign({}, o, {cleanName});
@@ -489,7 +448,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
     }
     
     
-    const args = CliParser.getSpreadedArray(argv);
+    const args = getSpreadedArray(argv);
     
     let prev: ParsedValue<any> = null, g: CliParserGroup = null;
     
@@ -516,13 +475,13 @@ export class CliParser<T extends Array<ElemType<any>>> {
           v = Number.parseFloat(a);
         }
         else if (CliParser.separators.includes(<Type>prev.type)) {
-          v = fromSepString<typeof prev.type>(prev.default, prev);
+          v = fromSepString<typeof prev.type>(a, prev);
         }
         else {
           throw new Error('No type matched. Fallthrough.');
         }
         
-        const name = CliParser.getCleanOpt(prev.name);
+        const name = getCleanOpt(prev.name);
         
         if (g) {
           g[name] = v;
@@ -554,7 +513,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         continue;
       }
       
-      const clean = CliParser.getCleanOpt(a);
+      const clean = getCleanOpt(a);
       let longOpt = null;
       
       if (a.startsWith('--')) {
@@ -570,7 +529,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
           throw chalk.magenta('Could not find option with name: ' + a);
         }
         
-        const name = CliParser.getCleanOpt(longOpt.name);
+        const name = getCleanOpt(longOpt.name);
         
         if (longOpt.type === Type.Boolean) {
           opts[name] = true;
@@ -621,13 +580,14 @@ export class CliParser<T extends Array<ElemType<any>>> {
           throw chalk.magenta('Could not find hash val for name: ') + longNameHashVal;
         }
         
-        const originalName = longNameHashVal.name;
+        const originalName = getCleanOpt(longNameHashVal.name);
         
         if (shortHashVal.type === Type.Boolean) {
           opts[originalName] = true;
           order.push({name: originalName, value: true, from: 'argv'});
         }
         else if (shortHashVal.type === Type.ArrayOfBoolean) {
+          opts[originalName] = opts[originalName] || [];
           opts[originalName].push(true);
           order.push({name: originalName, value: true, from: 'argv'});
         }
@@ -657,10 +617,9 @@ export class CliParser<T extends Array<ElemType<any>>> {
       
     }
     
-    
     for (const o of this.options) {
       
-      const cleanName = CliParser.getCleanOpt(o.name);
+      const cleanName = getCleanOpt(o.name);
       
       if (!(cleanName in opts)) {
         
@@ -679,16 +638,35 @@ export class CliParser<T extends Array<ElemType<any>>> {
           opts[cleanName] = val.value;
         }
         else if ('default' in o) {
+          
           // should make a copy of the value, which we do here
-          if(o.type === Type.JSON){
-            opts[cleanName] = JSON.parse(o.default).value;
+          if (CliParser.separators.includes(<Type>o.type)) {
+            opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
           }
-          else{
-            opts[cleanName] = JSON.parse(JSON.stringify(o.default))
+          else if (CliParser.arrays.includes(<Type>o.type)) {
+            opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
           }
+          else if (o.type === Type.JSON) {
+            opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
+          }
+          else {
+            opts[cleanName] = JSON.parse(JSON.stringify(o.default));
+          }
+        }
+        else {
+          
+          if (CliParser.arrays.includes(<Type>o.type)) {
+            opts[cleanName] = [];
+          }
+          
+          if (CliParser.separators.includes(<Type>o.type)) {
+            opts[cleanName] = [];
+          }
+          
         }
         
       }
+      
     }
     
     
