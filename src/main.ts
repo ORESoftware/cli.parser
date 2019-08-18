@@ -8,13 +8,14 @@ import chalk from 'chalk';
 import {getTable} from './table';
 import * as util from 'util';
 import {findJSONFiles} from './utils';
+import log from './logging'
 
 export const r2gSmokeTest = function () {
   // r2g command line app uses this exported function
   return true;
 };
 
-type TypeMapping<T = any> = {
+type TypeMapping<T> = {
   Boolean: boolean,
   String: string,
   Number: number,
@@ -25,10 +26,35 @@ type TypeMapping<T = any> = {
   ArrayOfInteger: Array<number>,
   JSON: T,
   SeparatedStrings: Array<string>,
-  SeparatedNumbers: Array<string>,
-  SeparatedIntegers: Array<string>,
-  SeparatedBooleans: Array<string>
+  SeparatedNumbers: Array<number>,
+  SeparatedIntegers: Array<number>,
+  SeparatedBooleans: Array<boolean>
 }
+
+
+class JSONType<T> {
+
+}
+
+export enum Foo {
+  JSONType
+}
+
+const TypeObj =  {
+  Boolean : 'Boolean',
+  String : 'String',
+  Number : 'Number',
+  Integer : 'Integer',
+  ArrayOfString : 'ArrayOfString',
+  ArrayOfBoolean : 'ArrayOfBoolean',
+  ArrayOfNumber : 'ArrayOfNumber',
+  ArrayOfInteger : 'ArrayOfInteger',
+  JSON : 'JSON',
+  SeparatedStrings : 'SeparatedStrings',
+  SeparatedNumbers : 'SeparatedNumbers',
+  SeparatedIntegers : 'SeparatedIntegers',
+  SeparatedBooleans : 'SeparatedBooleans'
+};
 
 export enum Type {
   Boolean = 'Boolean',
@@ -43,15 +69,16 @@ export enum Type {
   SeparatedStrings = 'SeparatedStrings',
   SeparatedNumbers = 'SeparatedNumbers',
   SeparatedIntegers = 'SeparatedIntegers',
-  SeparatedBooleans = 'SeparatedIntegers'
+  SeparatedBooleans = 'SeparatedBooleans'
 }
 
 
-export interface ElemType<T = any> {
+
+export interface ElemType<T> {
   name: string,
   alt?: string | Array<string>
   short?: string,
-  type: keyof TypeMapping,
+  type: keyof TypeMapping<T>,
   default?: any,
   separator?: string,
   env?: string,
@@ -59,17 +86,18 @@ export interface ElemType<T = any> {
   description?: string
 }
 
-export const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
+export const asOptions = <Z, K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping<Z> }>>(t: T) => t;
 
-export type OptionsToType<T extends Array<ElemType>>
-  = { [K in T[number]['name']]: TypeMapping[Extract<T[number], { name: K }>['type']] }
+export type OptionsToType<T extends Array<ElemType<any>>>
+  = { [K in T[number]['name']]: TypeMapping<any>[Extract<T[number], { name: K }>['type']] }
+  
 
-export interface ParsedValue extends ElemType {
+export interface ParsedValue<Z> extends ElemType<Z> {
   cleanName: string
 }
 
 export interface Parsed {
-  [key: string]: ParsedValue
+  [key: string]: ParsedValue<any>
 }
 
 export interface CliParserHelpOpts {
@@ -96,7 +124,7 @@ export interface CliParserOrder {
   from: 'env' | 'argv'
 }
 
-const checkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+const checkArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
   
   if (!('default' in v)) {
     return;
@@ -109,7 +137,7 @@ const checkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
   }
 };
 
-const checkJSONArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+const checkJSONArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
   
   if (!('env' in v)) {
     return;
@@ -133,13 +161,13 @@ const checkJSONArray = (v: ElemType, t: string, f?: (v: any) => void) => {
   assert(Array.isArray(e.value), `type is array, so default value needs to be array for option: ${util.inspect(v)}`);
   
   for (const x of e.value) {
-    assert(typeof x === t, `Type of array element needs to be: '${t}'`);
+    assert(typeof x === t, `Type of array element needs to be: '${t}', but instead we got a different value type: ${util.inspect(v)}`);
     f && f(x);
   }
 };
 
 
-const checkSepkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+const checkSepkArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
   
   if (!('default' in v)) {
     return;
@@ -148,18 +176,19 @@ const checkSepkArray = (v: ElemType, t: string, f?: (v: any) => void) => {
   const def = v.default;
   const sep = v.separator || ',';
   
-  assert(typeof def === 'string', `The type is "${sep}" separated values, but the default value is not a string ${v}`);
+  assert(typeof def === 'string', `The type is "${sep}" separated values, but the default value is not a string: ${util.inspect(v)}`);
   
-  const split = def.split(sep);
+  const split = String(def).split(sep).map(v => String(v || '').trim()).filter(Boolean);
+  
   for (const x of split) {
-    assert(typeof x === t, `Type of array element needs to be: '${t}'`);
+    // assert(typeof x === t, `Type of array element needs to be: '${t}', but instead we got a different value type: ${util.inspect(v)}`);
     f && f(x);
   }
   
 };
 
 
-const checkJSONSepArray = (v: ElemType, t: string, f?: (v: any) => void) => {
+const checkJSONSepArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
   
   if (!('env' in v)) {
     return;
@@ -193,7 +222,34 @@ const checkJSONSepArray = (v: ElemType, t: string, f?: (v: any) => void) => {
 };
 
 
-export class CliParser<T extends Array<ElemType>> {
+const fromSepString = <T>(a: string, x: ElemType<any>): Array<T> => {
+  
+  return a.split(x.separator || ',').map(v => String(v || '').trim()).filter(Boolean).map(v => {
+    
+    switch (<Type>x.type) {
+      
+      case Type.SeparatedNumbers:
+        return JSON.parse(v);
+      
+      case Type.SeparatedIntegers:
+        return Number.parseInt(v);
+      
+      case Type.SeparatedBooleans:
+        return Boolean(JSON.parse(v));
+      
+      case Type.SeparatedStrings:
+        return v.slice(0);
+      
+      default:
+        return v.slice(0);
+    }
+    
+  });
+  
+};
+
+
+export class CliParser<T extends Array<ElemType<any>>> {
   
   private readonly options: T;
   private readonly opts: OptionsToType<T>;
@@ -298,10 +354,14 @@ export class CliParser<T extends Array<ElemType>> {
           
           case "JSON":
             try {
-              'default' in v && JSON.parse(v.default);
+              if ('default' in v) {
+                const x = JSON.parse(v.default);
+                assert(x && 'value' in x, 'JSON must have a "value" key/property.');
+              }
             }
             catch (err) {
-              throw `Could not call JSON.parse on default property, even though the type is "JSON": ${util.inspect(v)}`
+              log.error(`Could not call JSON.parse on default property, even though the type is "JSON": ${util.inspect(v)}`);
+              throw err.message || err;
             }
             break;
           
@@ -431,7 +491,7 @@ export class CliParser<T extends Array<ElemType>> {
     
     const args = CliParser.getSpreadedArray(argv);
     
-    let prev: ParsedValue = null, g: CliParserGroup = null;
+    let prev: ParsedValue<any> = null, g: CliParserGroup = null;
     
     for (let i = 0; i < args.length; i++) {
       
@@ -456,18 +516,7 @@ export class CliParser<T extends Array<ElemType>> {
           v = Number.parseFloat(a);
         }
         else if (CliParser.separators.includes(<Type>prev.type)) {
-          v = a.split(prev.separator || ',').map(v => String(v || '').trim()).filter(Boolean).map(v => {
-            switch (<Type>prev.type) {
-              case Type.SeparatedNumbers:
-                return JSON.parse(v);
-              case Type.SeparatedIntegers:
-                return Number.parseInt(v);
-              case Type.SeparatedBooleans:
-                return Boolean(JSON.parse(v));
-            }
-            
-            return v;
-          });
+          v = fromSepString<typeof prev.type>(prev.default, prev);
         }
         else {
           throw new Error('No type matched. Fallthrough.');
@@ -610,15 +659,18 @@ export class CliParser<T extends Array<ElemType>> {
     
     
     for (const o of this.options) {
+      
       const cleanName = CliParser.getCleanOpt(o.name);
+      
       if (!(cleanName in opts)) {
+        
         if (o.env && o.env in process.env) {
           
           try {
             var val = JSON.parse(process.env[o.env]);
           }
           catch (err) {
-            throw `Could not parse env variable with name: ${o.env}:\n${err.message || err}`
+            throw `Could not parse env variable with name: '${o.env}', the value was '${process.env[o.env]}': \n${chalk.magenta(err.message || err)}`
           }
           
           if (!('value' in val)) {
@@ -627,8 +679,15 @@ export class CliParser<T extends Array<ElemType>> {
           opts[cleanName] = val.value;
         }
         else if ('default' in o) {
-          opts[cleanName] = JSON.parse(JSON.stringify(o.default))
+          // should make a copy of the value, which we do here
+          if(o.type === Type.JSON){
+            opts[cleanName] = JSON.parse(o.default).value;
+          }
+          else{
+            opts[cleanName] = JSON.parse(JSON.stringify(o.default))
+          }
         }
+        
       }
     }
     

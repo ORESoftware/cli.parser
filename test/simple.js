@@ -11,7 +11,7 @@ const chalk = require('chalk');
 
 const suman = require('suman');
 const {Test} = suman.init(module);
-const {Type} = require('../dist/index');
+const {Type} = require('../dist/main');
 const {pt} = require('prepend-transform');
 
 Test.create(b => {

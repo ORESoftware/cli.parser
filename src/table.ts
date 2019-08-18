@@ -27,7 +27,7 @@ const columns = {
 };
 
 
-const getSeparatedString = (v: ElemType): string => {
+const getSeparatedString = (v: ElemType<any>): string => {
   if (CliParser.separators.includes(<Type>v.type)) {
     return ` (${v.separator || ','})`;
   }
@@ -61,7 +61,7 @@ const mapEnv = (env: string | Array<string>, type: Type, sep: string): string =>
   
 };
 
-const getNames = (v: ElemType): string => {
+const getNames = (v: ElemType<any>): string => {
   return [
     v.short ? chalk.bold('-' + v.short) : '',
     '--' + v.name,
@@ -92,7 +92,7 @@ const camel2Dash = (v: string): string => {
   
 };
 
-export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliParserHelpOpts) => {
+export const getTable = (options: Array<ElemType<any>>, o: CliParserOptions, v: CliParserHelpOpts) => {
   
   const table = new Table({
     colWidths: [30, 25, 95]
@@ -138,7 +138,7 @@ export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliPa
 };
 
 
-export const getTableOfRootCommands = (options: Array<ElemType>, o: CliParserOptions, v: CliParserHelpOpts) => {
+export const getTableOfRootCommands = (options: Array<ElemType<any>>, o: CliParserOptions, v: CliParserHelpOpts) => {
   
   const table = new Table({
     colWidths: [30, 25, 95]

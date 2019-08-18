@@ -3,9 +3,10 @@
 import {getTable} from './table';
 import {asOptions, CliParser, Type, ElemType} from './main';
 
-const typeOverride = <T>(v: ElemType) => <ElemType<T>>v;
+const typeOverride = <T>(v: ElemType<any>) => <ElemType<T>>v;
 
 const options = asOptions([
+  
   {
     name: 'aaa',
     short: 'a',
@@ -55,7 +56,7 @@ const options = asOptions([
  {
     name: 'dog',
     short: 'x',
-    type: Type.ArrayOfString
+    type: 'ArrayOfString'
   }
 
 ]);
