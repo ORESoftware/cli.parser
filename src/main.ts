@@ -403,12 +403,12 @@ export class CliParser<T extends Array<ElemType<any>>> {
     }
   }
   
-
   
   getHelpString(v?: CliParserHelpOpts) {
     v = <CliParserHelpOpts>(v || {});
     return getTable(this.options, this.parserOpts, v);
   }
+  
   
   parse(argv: Array<string>) {
     
@@ -490,6 +490,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         }
         
         if (CliParser.arrays.includes(<Type>prev.type)) {
+          opts[name] = opts[name] || [];
           opts[name].push(v);
           order.push({name, value: v, from: 'argv'});
           prev = null;
@@ -536,6 +537,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
           order.push({name, value: true, from: 'argv'});
         }
         else if (longOpt.type === Type.ArrayOfBoolean) {
+          opts[name] = opts[name] || [];
           opts[name].push(true);
           order.push({name, value: true, from: 'argv'});
         }
