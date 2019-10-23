@@ -20,8 +20,7 @@ export interface ElemType {
 
 export const asOptions = <K extends keyof any, T extends Array<{ name: K, type: keyof TypeMapping }>>(t: T) => t;
 
-export type OptionsToType<T extends Array<ElemType>>
-  = { [K in T[number]['name']]: TypeMapping[Extract<T[number], { name: K }>['type']] }
+export type OptionsToType<T extends Array<ElemType>> = { [K in T[number]['name']]: TypeMapping[Extract<T[number], { name: K }>['type']] }
   
   
 export class Foo<T extends Array<ElemType>> {

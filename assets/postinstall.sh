@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 set -e;
 
-if [ "$skip_postinstall" == "yes" ]; then
+if [ "$skip_postinstall" = "yes" ]; then
     echo "skipping postinstall routine.";
     exit 0;
 fi
@@ -16,11 +16,12 @@ mkdir -p "$HOME/.oresoftware/bin" || {
 }
 
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
+if [ "$(uname -s)" = "Darwin" ]; then
 
    if [ ! -f "$HOME/.oresoftware/bin/realpath" ]; then
       (
-        curl --silent -o- https://raw.githubusercontent.com/oresoftware/realpath/master/assets/install.sh | bash || {
+        curl_url='https://raw.githubusercontent.com/oresoftware/realpath/master/assets/install.sh'
+        curl --silent -o- "$curl_url" | sh || {
            echo "Could not install realpath on your system.";
            exit 1;
         }

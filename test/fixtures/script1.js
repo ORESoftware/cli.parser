@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const {CliParser} = require('cli.ts');
+const {CliParser} = require('@oresoftware/cli');
 const options = JSON.parse(process.env.cli_options);
 assert(Array.isArray(options), 'cli.ts test: options is not an array.');
 

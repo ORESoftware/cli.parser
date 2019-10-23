@@ -37,4 +37,3 @@ export type Opts = OptionsToType<typeof options>;
 
 const v= <Opts>{bar: 'moo'};
 
-
