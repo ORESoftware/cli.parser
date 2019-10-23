@@ -48,6 +48,7 @@ export const findJSONFiles = (pth: string): object => {
   }
   
   return Object.assign({}, ...values.reverse());
+
 };
 
 

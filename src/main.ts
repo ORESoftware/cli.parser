@@ -440,6 +440,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
       }
     });
 
+
     const nameHash = <Parsed>{};
     const shortNameHash = <Parsed>{};
     const envHash = <Parsed>{};
