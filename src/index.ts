@@ -251,12 +251,11 @@ export class CliParser<T extends Array<ElemType>> {
       if (CliParser.arrays.includes(<Type>v.type)) {
         opts[v.name] = [];
       }
-      if (CliParser.separators.includes(<Type>v.type)) {
+      else if (CliParser.separators.includes(<Type>v.type)) {
         opts[v.name] = [];
       }
     });
-    
-    
+
     console.log('ret prepped:', opts);
     
     const nameHash = <Parsed>{};

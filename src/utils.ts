@@ -46,13 +46,12 @@ export const findJSONFiles = (pth: string): object => {
   }
   
   return Object.assign({}, ...values.reverse());
-  
 };
 
 export const wrapString = (n: number, str: string): string => {
   
-  let ret: Array<string> = [],
-    remaining = String(str || '').replace(/[\r\n]/g, '');
+  let ret: Array<string> = [];
+  let remaining = String(str || '').replace(/[\r\n]/g, '');
   
   while (remaining) {
     
