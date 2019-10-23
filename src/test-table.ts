@@ -1,5 +1,5 @@
 import {getTable} from './table';
-import {asOptions, CliParser, Type} from './index';
+import {asOptions, CliParser, Type} from './main';
 
 const options = asOptions([
   {

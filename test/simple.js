@@ -11,7 +11,7 @@ const chalk = require('chalk');
 
 const suman = require('suman');
 const {Test} = suman.init(module);
-const {Type} = require('../dist/index');
+const {Type} = require('../dist/main');
 const {pt} = require('prepend-transform');
 
 Test.create(b => {
@@ -181,13 +181,12 @@ Test.create(b => {
     },
     
     {
-      //duplication SHORT name v
       args: ['--foo-car', '1', '--fo-ocar', '2', '--fooc-ar', '3'],
       env: {
         expected_results: {
-          'foo-car': '1',
-          'fo-ocar': '2',
-          'fooc-ar': '3'
+          'foo_car': '1',
+          'fo_ocar': '2',
+          'fooc_ar': '3'
         },
         cli_options: [
           {
@@ -195,7 +194,7 @@ Test.create(b => {
             type: Type.String
           },
           {
-            name: 'fo-ocar',
+            name: 'fo_ocar',
             type: Type.String
           },
           {

@@ -1,9 +1,10 @@
 'use strict';
 
-import {CliParser, CliParserHelpOpts, CliParserOptions, ElemType, Type} from './index';
+import {CliParser, CliParserHelpOpts, CliParserOptions, ElemType, Type} from './main';
 // const AsciiTable = require('ascii-table');
 import chalk from 'chalk';
 import {flattenDeep, wrapString} from './utils';
+import * as util from "util";
 
 const {table} = require('table');
 const Table = require('cli-table2');
@@ -26,7 +27,7 @@ const columns = {
 };
 
 
-const getSeparatedString = (v: ElemType): string => {
+const getSeparatedString = (v: ElemType<any>): string => {
   if (CliParser.separators.includes(<Type>v.type)) {
     return ` (${v.separator || ','})`;
   }
@@ -34,17 +35,20 @@ const getSeparatedString = (v: ElemType): string => {
 };
 
 const mapEnv = (env: string | Array<string>, type: Type, sep: string): string => {
+  
   return flattenDeep([env]).map(v => String(v || '').trim()).filter(Boolean).map(v => {
     
     sep = sep || ',';
     
     switch (type) {
       case Type.String:
-      case Type.ArrayOfString:
       case Type.SeparatedStrings:
       case Type.SeparatedBooleans:
-      case Type.ArrayOfNumber:
       case Type.SeparatedIntegers:
+      case Type.SeparatedNumbers:
+      case Type.ArrayOfInteger:
+      case Type.ArrayOfString:
+      case Type.ArrayOfNumber:
       case Type.ArrayOfBoolean:
         return v + `=x${sep}y${sep}z`;
       case Type.Boolean:
@@ -54,17 +58,19 @@ const mapEnv = (env: string | Array<string>, type: Type, sep: string): string =>
     return v + '=ARG';
   })
   .join('\n');
+  
 };
 
-const getNames = (v: ElemType): string => {
+const getNames = (v: ElemType<any>): string => {
   return [
     v.short ? chalk.bold('-' + v.short) : '',
-    '--' + camel2Dash(v.name),
+    '--' + v.name.replace(/_/g, '-'),
     v.env ? mapEnv(v.env, <Type>v.type, v.separator) : ''
   ]
   .map(v => String(v || '').trim())
   .filter(Boolean)
   .join('\n')
+  
 };
 
 const camel2Dash = (v: string): string => {
@@ -86,33 +92,73 @@ const camel2Dash = (v: string): string => {
   
 };
 
-export const getTable = (options: Array<ElemType>, o: CliParserOptions, v: CliParserHelpOpts) => {
-  
-  // const data = [
-  //   ['0A', '0B', '0C'],
-  //   ['1A', '1B', '1C'],
-  //   ['2A', '2B', '2C']
-  // ];
+export const getTable = (options: Array<ElemType<any>>, o: CliParserOptions, v: CliParserHelpOpts) => {
   
   const table = new Table({
     colWidths: [30, 25, 95]
   });
   
   table.push([
-    {colSpan: 3, content: o.commandName || 'node foo.js [OPTIONS]'}
+    {colSpan: 3, content: chalk.bold('Command: ') + (o.commandName || 'node foo.js [OPTIONS];')}
   ]);
   
   table.push([
-    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Help')
+    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Example')
   ]);
   
-  options.forEach(v => {
+  for (const v of options) {
     table.push([
       getNames(v),
       chalk.bold.gray(v.type + `${getSeparatedString(v)}`),
-      chalk.italic(wrapString(85, v.help || ''))
+      chalk.italic(wrapString(85, v.help || v.description || ''))
+    ])
+  }
+  
+  const examples = flattenDeep([o.commandExample, o.commandExamples])
+  .map(v => String(v || '').trim())
+  .filter(Boolean);
+  
+  if (examples.length > 0) {
+    table.push([
+      {colSpan: 3, content: chalk.bold('Command Examples:')}
     ]);
+    
+    for (const e of examples) {
+      table.push([
+        {colSpan: 3, content: typeof e === 'string' ? e : util.inspect(e)}
+      ]);
+    }
+  }
+  
+  return String(table)
+  .split('\n')
+  .map(v => '  ' + v)
+  .join('\n');
+  
+};
+
+
+export const getTableOfRootCommands = (options: Array<ElemType<any>>, o: CliParserOptions, v: CliParserHelpOpts) => {
+  
+  const table = new Table({
+    colWidths: [30, 25, 95]
   });
+  
+  table.push([
+    {colSpan: 3, content: o.commandName || 'node foo.js [OPTIONS]; ' + o.commandExample || ''}
+  ]);
+  
+  table.push([
+    chalk.blueBright.bold('Name(s)'), chalk.blueBright.bold('Type'), chalk.blueBright.bold('Description/Example')
+  ]);
+  
+  for (const v of options) {
+    table.push([
+      getNames(v),
+      chalk.bold.gray(v.type + `${getSeparatedString(v)}`),
+      chalk.italic(wrapString(85, v.help || v.description || ''))
+    ])
+  }
   
   return String(table)
   .split('\n')

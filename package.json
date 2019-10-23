@@ -1,14 +1,10 @@
 {
   "name": "@oresoftware/cli",
-  "version": "0.0.1001",
+  "version": "0.0.104",
   "description": "Semver-oriented TypeScript library skeleton.",
-  "main": "dist/index.js",
-  "bin": {
-    "example": "cli/example.sh",
-    "example.js": "cli/example.js"
-  },
-  "types": "dist/index.d.ts",
-  "typings": "dist/index.d.ts",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "typings": "dist/main.d.ts",
   "scripts": {
     "test": "suman test",
     "postinstall": "./assets/postinstall.sh"
@@ -30,14 +26,13 @@
   },
   "homepage": "https://github.com/ORESoftware/typescript-library-skeleton#readme",
   "dependencies": {
-    "chalk": "^2.4.1",
+    "chalk": "2.4.2",
     "cli-table2": "^0.2.0",
     "table": "^5.0.2"
   },
   "devDependencies": {
     "@types/cli-table2": "^0.2.1",
-    "@types/core-js": "^0.9.46",
-    "@types/node": "^9.6.2",
+    "@types/node": "12.6.0",
     "@types/table": "^4.0.5",
     "prepend-transform": "0.0.1017"
   }

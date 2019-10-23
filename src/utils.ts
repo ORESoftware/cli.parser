@@ -30,13 +30,15 @@ export const findJSONFiles = (pth: string): object => {
   const values: Array<object> = [];
   assert(path.isAbsolute(pth), 'pth must be an absolute path.');
   
-  while (pth.startsWith(process.env.HOME)) {
+  const home = process.env.HOME;
+  
+  while (pth.startsWith(home)) {
     
     try {
       values.push(require(path.resolve(pth, '.cli.json')))
     }
     catch (err) {
-      if(/parse/i.test(err.message)){
+      if (/parse/i.test(err.message) && !/Cannot find module/i.test(err.message)) {
         console.error(chalk.magenta(err));
       }
     }
@@ -46,6 +48,55 @@ export const findJSONFiles = (pth: string): object => {
   }
   
   return Object.assign({}, ...values.reverse());
+
+};
+
+
+export const getCleanOpt = (v: string) => {
+  
+  while (v.startsWith('-')) {
+    v = v.slice(1);
+  }
+  
+  return v.replace(/-/g, '_');  // .toLowerCase(); // .replace(/-/g, '_');
+};
+
+
+export const getSpreadedArray = (v: Array<string>): Array<string> => {
+  
+  const ret: Array<string> = [];
+  
+  for (let i = 0; i < v.length; i++) {
+    
+    const elem = v[i];
+    
+    if (elem.startsWith('–')) {
+      throw 'Your program has an "en-dash" instead of a hyphen - .';
+    }
+    
+    if (elem.startsWith('—')) {
+      throw 'Your program has an "em-dash" instead of a hyphen - .';
+    }
+    
+    if (elem.startsWith('-')) {
+      const index = elem.indexOf('='); // only the first inded of =
+      if (index > -1) {
+        const first = elem.slice(0, index).trim();
+        const second = elem.slice(index + 1).trim();
+        
+        if (first.length < 1 || second.length < 1) {
+          throw chalk.magenta('Malformed expression involving equals (=) sign, see: ' + elem);
+        }
+        ret.push(first, second);
+        continue;
+      }
+    }
+    
+    ret.push(elem);
+  }
+  
+  return ret;
+  
 };
 
 export const wrapString = (n: number, str: string): string => {
