@@ -33,7 +33,6 @@ type TypeMapping<T> = {
   SeparatedBooleans: Array<boolean>
 }
 
-
 class JSONType<T> {
 
 }
@@ -93,7 +92,6 @@ export const asOptions = <Z, K extends keyof any, T extends Array<{ name: K, typ
 
 export type OptionsToType<T extends Array<ElemType<any>>>
   = { [K in T[number]['name']]: TypeMapping<any>[Extract<T[number], { name: K }>['type']] }
-
 
 export interface ParsedValue<Z> extends ElemType<Z> {
   cleanName: string
@@ -171,7 +169,6 @@ const checkJSONArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
   }
 };
 
-
 const checkSepkArray = (v: ElemType<any>, t: string, f?: (v: any) => void): Array<any> => {
   
   if (!('default' in v)) {
@@ -195,7 +192,6 @@ const checkSepkArray = (v: ElemType<any>, t: string, f?: (v: any) => void): Arra
   });
   
 };
-
 
 const checkJSONSepArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
   
@@ -230,7 +226,6 @@ const checkJSONSepArray = (v: ElemType<any>, t: string, f?: (v: any) => void) =>
   
 };
 
-
 const fromSepString = <T>(a: string, x: ElemType<any>): Array<T> => {
   
   return a.split(x.separator || ',').map(v => String(v || '').trim()).filter(Boolean).map(v => {
@@ -256,7 +251,6 @@ const fromSepString = <T>(a: string, x: ElemType<any>): Array<T> => {
   });
   
 };
-
 
 export class CliParser<T extends Array<ElemType<any>>> {
   
@@ -325,7 +319,6 @@ export class CliParser<T extends Array<ElemType<any>>> {
         if (v.short) {
           set[clean] = set[v.short] = true;
         }
-        
         
         switch (v.type) {
           
@@ -403,12 +396,10 @@ export class CliParser<T extends Array<ElemType<any>>> {
     }
   }
   
-  
   getHelpString(v?: CliParserHelpOpts) {
     v = <CliParserHelpOpts>(v || {});
     return getTable(this.options, this.parserOpts, v);
   }
-  
   
   parse(argv: Array<string>) {
     
@@ -439,8 +430,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         opts[v.name] = [];
       }
     });
-
-
+    
     const nameHash = <Parsed>{};
     const shortNameHash = <Parsed>{};
     const envHash = <Parsed>{};
@@ -455,7 +445,6 @@ export class CliParser<T extends Array<ElemType<any>>> {
         envHash[o.env as string] = Object.assign({}, o, {cleanName});
       }
     }
-    
     
     const args = getSpreadedArray(argv);
     
@@ -536,7 +525,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
             continue;
           }
           
-          throw chalk.magenta('Could not find option with name: ' + a);
+          throw new Error(chalk.magenta(`Could not find option with name: '${a}'`));
         }
         
         const name = getCleanOpt(longOpt.name);
@@ -680,7 +669,6 @@ export class CliParser<T extends Array<ElemType<any>>> {
       
     }
     
-    
     return {
       opts: <OptionsToType<T>>opts,
       values,
@@ -689,7 +677,6 @@ export class CliParser<T extends Array<ElemType<any>>> {
     };
   }
 }
-
 
 export const Parser = CliParser;
 
