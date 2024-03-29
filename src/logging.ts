@@ -6,7 +6,6 @@ let settings = {
   isDebug: false
 };
 
-
 export const flipDebug = () => {
   return settings.isDebug = !settings.isDebug;
 };
@@ -20,7 +19,7 @@ export const log = {
       console.log('cli.parser debug:', ...args);
     }
   },
-  
+
 };
 
 export default log;

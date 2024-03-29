@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import chalk from 'chalk';
 import {getTable} from './table';
 import * as util from 'util';
-import {findJSONFiles} from './utils';
+import {findJSONFiles, flattenDeep} from './utils';
 import log from './logging'
 import {getCleanOpt} from "./utils";
 import {getSpreadedArray} from "./utils";
@@ -409,7 +409,6 @@ export class CliParser<T extends Array<ElemType<any>>> {
     return getTable(this.options, this.parserOpts, v);
   }
 
-
   parse(argv: Array<string>) {
 
     if (!argv) {
@@ -453,11 +452,11 @@ export class CliParser<T extends Array<ElemType<any>>> {
 
     for (let i = 0; i < args.length; i++) {
 
-      const a = args[i];
+      const arg = args[i];
 
-      if (prev && a.startsWith('-')) {
+      if (prev && arg.startsWith('-')) {
         // TODO: we need check if the value is one of our options
-        throw chalk.magenta(`Expected a value but got an option instead: ${a}`);
+        throw chalk.magenta(`Expected a value but got an option instead: ${arg}`);
       }
 
       if (prev) {
@@ -465,16 +464,16 @@ export class CliParser<T extends Array<ElemType<any>>> {
         let v: ParsedType;
 
         if (prev.type === Type.String || prev.type === Type.ArrayOfString) {
-          v = a.slice(0);
+          v = arg.slice(0);
         }
         else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
-          v = Number.parseInt(a);
+          v = Number.parseInt(arg);
         }
         else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
-          v = Number.parseFloat(a);
+          v = Number.parseFloat(arg);
         }
         else if (CliParser.separators.includes(<Type>prev.type)) {
-          v = fromSepString<typeof prev.type>(a, prev);
+          v = fromSepString<typeof prev.type>(arg, prev);
         }
         else {
           throw new Error('No type matched. Fallthrough.');
@@ -507,36 +506,38 @@ export class CliParser<T extends Array<ElemType<any>>> {
         continue;
       }
 
-      if (!a.startsWith('-')) {
-        values.push(a);
+      if (!arg.startsWith('-')) {
+        values.push(arg);
         prev = null;
         continue;
       }
 
-      const clean = getCleanOpt(a);
+      const clean = getCleanOpt(arg);
       let longOpt = null;
 
-      if (a.startsWith('--')) {
+      if (arg.startsWith('--')) {
 
         longOpt = nameHash[clean];
 
         if (!longOpt) {
           if (this.allowUnknown) {
-            values.push(a);
+            values.push(arg);
             continue;
           }
 
-          throw chalk.magenta('Could not find option with name: ' + a);
+          throw chalk.magenta('Could not find option with name: ' + arg);
         }
 
         const name = getCleanOpt(longOpt.name);
+
+        console.log({name});
 
         if (longOpt.type === Type.Boolean) {
           opts[name] = true;
           order.push({name, value: true, from: 'argv'});
         }
         else if (longOpt.type === Type.ArrayOfBoolean) {
-          opts[name] = opts[name] || [];
+          opts[name] = flattenDeep([opts[name] || []]);
           opts[name].push(true);
           order.push({name, value: true, from: 'argv'});
         }
@@ -550,9 +551,11 @@ export class CliParser<T extends Array<ElemType<any>>> {
       }
 
       let c = null;
-      const shorties = a.slice(1).split('');
+      const shorties = arg.slice(1).split('');
+      console.log({shorties,arg});
       const shortOpts: Parsed = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
       const keys = Object.keys(shortOpts);
+      console.log({keys});
 
       g = {};
 
@@ -564,7 +567,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         if (!t) {
 
           if (this.allowUnknown) {
-            values.push(a);
+            values.push(arg);
             break;
           }
 
@@ -594,7 +597,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         }
         else {
           if (j < keys.length - 1) {
-            throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${a}`);
+            throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${arg}`);
           }
 
           if (!args[i + 1]) {

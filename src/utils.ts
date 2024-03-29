@@ -114,6 +114,7 @@ export const getSpreadedArray = (v: Array<string>): Array<string> => {
     ret.push(elem);
   }
 
+  console.log({ret});
   return ret;
 
 };
