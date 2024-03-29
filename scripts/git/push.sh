@@ -1,11 +1,32 @@
 #!/usr/bin/env bash
 
+
 set -e;
 
-# "cm" is the commit message; default message is "set"
-cm="${1:-'set'}"
+ssh-add -D
+ssh-add ~/.ssh/id_ed25519
 
-git add .
+combined=""
+for arg in "${@}"; do
+  combined="${combined} ${arg}"
+done
+
+trimmed="$(echo "$combined" | xargs)"
+
+if test "${trimmed}" == '' ; then
+  trimmed="squash-this-commit-later";
+fi
+
+echo "the commit message: '$trimmed'";
+
+echo 'transpiling with tsc to check...'
+tsc -p tsconfig.json
+
 git add -A
-git commit --allow-empty -am "pdev:$cm"
-git push
+git commit -am "${trimmed}" || {
+  echo "could not create a new commit"
+}
+
+git push origin || {
+  echo 'could not push to origin'
+}

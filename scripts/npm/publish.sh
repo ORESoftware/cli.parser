@@ -49,7 +49,7 @@ tsproject_run_checks(){
 
 
 
-echo -e " ${zmx_gray}[tsls]${zmx_no_color} running NPM publish routine."
+echo -e "${zmx_gray}[<tsls>]${zmx_no_color} running NPM publish routine."
 
 zmx(){
     local v1="$1"; local v2="$2"; "$@"  \
