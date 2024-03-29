@@ -5,8 +5,61 @@ import * as assert from 'assert';
 import chalk from 'chalk';
 
 export const flattenDeep = (a: Array<any>): Array<any> => {
-  return a.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val), []);
+  return a.reduce((acc, val) => {
+    return Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val)
+  }, []);
 };
+
+export const flattenAnyIgnoreFalsy = (a: any): Array<any> => {
+
+  if(!Array.isArray(a)){
+    return a ? [a] : [];
+  }
+
+  const ret = [];
+
+  for(const v of a){
+    if(v){
+      ret.push(...flattenAny(v));
+    }
+  }
+
+  return ret;
+};
+
+
+export const flattenAny = (a: any): Array<any> => {
+
+  if(!Array.isArray(a)){
+    return [a];
+  }
+
+  const ret = [];
+
+  for(const v of a){
+    ret.push(...flattenAny(v));
+  }
+
+  return ret;
+};
+
+export const flattenAnyIgnoreUndefined = (a: any): Array<any> => {
+
+  if(!Array.isArray(a)){
+    return a === undefined ? [] : [a];
+  }
+
+  const ret = [];
+
+  for(const v of a){
+    if(v !== undefined){
+      ret.push(...flattenAny(v));
+    }
+  }
+
+  return ret;
+};
+
 
 export const parseBool = (str: string): boolean => {
   switch (String(str || "").toUpperCase()) {
@@ -98,13 +151,13 @@ export const getSpreadedArray = (v: Array<string>): Array<string> => {
     }
 
     if (elem.startsWith('-')) {
-      const index = elem.indexOf('='); // only the first inded of =
+      const index = elem.indexOf('='); // only the first index of =
       if (index > -1) {
         const first = elem.slice(0, index).trim();
         const second = elem.slice(index + 1).trim();
 
         if (first.length < 1 || second.length < 1) {
-          throw chalk.magenta('Malformed expression involving equals (=) sign, see: ' + elem);
+          throw 'Malformed expression involving equals (=) sign, see: ' + elem;
         }
         ret.push(first, second);
         continue;

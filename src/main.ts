@@ -7,7 +7,14 @@ import * as assert from 'assert';
 import chalk from 'chalk';
 import {getTable} from './table';
 import * as util from 'util';
-import {findJSONFiles, flattenDeep} from './utils';
+import {
+  findJSONFiles,
+  flattenAny,
+  flattenAnyIgnoreUndefined,
+  flattenDeep,
+  parseBool,
+  parseBoolOptimistic
+} from './utils';
 import log from './logging'
 import {getCleanOpt} from "./utils";
 import {getSpreadedArray} from "./utils";
@@ -446,17 +453,27 @@ export class CliParser<T extends Array<ElemType<any>>> {
       }
     }
 
-    const args = getSpreadedArray(argv);
+    // const args = getSpreadedArray(argv);
+
+    const args = argv.slice(0);
 
     let prev: ParsedValue<any> = null, g: CliParserGroup = null;
 
     for (let i = 0; i < args.length; i++) {
 
-      const arg = args[i];
+      let arg = args[i];
 
       if (prev && arg.startsWith('-')) {
         // TODO: we need check if the value is one of our options
-        throw chalk.magenta(`Expected a value but got an option instead: ${arg}`);
+        throw chalk.magenta(`Expected a value but got an option instead: '${arg}'; you can use -x='-foo' to solve this`);
+      }
+
+      if (arg.startsWith('–')) {
+        throw 'Your program has an "en-dash" instead of a hyphen - .';
+      }
+
+      if (arg.startsWith('—')) {
+        throw 'Your program has an "em-dash" instead of a hyphen - .';
       }
 
       if (prev) {
@@ -512,6 +529,20 @@ export class CliParser<T extends Array<ElemType<any>>> {
         continue;
       }
 
+      let value = null;
+
+      if (arg.startsWith('-')) {
+        const index = arg.indexOf('='); // only the first index of =
+        if (index > -1) {
+          let originalArg = arg;
+          arg = arg.slice(0, index).trim();
+          value = originalArg.slice(index+1).trim();
+          if (arg.length < 1 || value.length < 1) {
+            throw `Malformed expression involving equals (=) sign, see: '${originalArg}'`
+          }
+        }
+      }
+
       const clean = getCleanOpt(arg);
       let longOpt = null;
 
@@ -525,7 +556,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
             continue;
           }
 
-          throw chalk.magenta('Could not find option with name: ' + arg);
+          throw chalk.magenta(`Could not find option with name: '${arg}' - use '--allow-unknown' to allow unknown flags (cli options).`);
         }
 
         const name = getCleanOpt(longOpt.name);
@@ -533,13 +564,14 @@ export class CliParser<T extends Array<ElemType<any>>> {
         console.log({name});
 
         if (longOpt.type === Type.Boolean) {
-          opts[name] = true;
-          order.push({name, value: true, from: 'argv'});
+          const val = parseBoolOptimistic(value)
+          opts[name] = val;
+          order.push({name, value: val, from: 'argv'});
         }
         else if (longOpt.type === Type.ArrayOfBoolean) {
-          opts[name] = flattenDeep([opts[name] || []]);
-          opts[name].push(true);
-          order.push({name, value: true, from: 'argv'});
+          const val = parseBoolOptimistic(value)
+          opts[name] = flattenAnyIgnoreUndefined([opts[name], val]);
+          order.push({name, value: val, from: 'argv'});
         }
         else {
           prev = longOpt;
@@ -587,13 +619,14 @@ export class CliParser<T extends Array<ElemType<any>>> {
         const originalName = getCleanOpt(longNameHashVal.name);
 
         if (shortHashVal.type === Type.Boolean) {
-          opts[originalName] = true;
-          order.push({name: originalName, value: true, from: 'argv'});
+          const val = parseBoolOptimistic(value)
+          opts[originalName] = val;
+          order.push({name: originalName, value: val, from: 'argv'});
         }
         else if (shortHashVal.type === Type.ArrayOfBoolean) {
-          opts[originalName] = opts[originalName] || [];
-          opts[originalName].push(true);
-          order.push({name: originalName, value: true, from: 'argv'});
+          const val = parseBoolOptimistic(value);
+          opts[originalName] = flattenAnyIgnoreUndefined([opts[originalName], val]);
+          order.push({name: originalName, value: val, from: 'argv'});
         }
         else {
           if (j < keys.length - 1) {
