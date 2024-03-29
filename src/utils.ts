@@ -43,6 +43,7 @@ export const flattenAny = (a: any): Array<any> => {
   return ret;
 };
 
+
 export const flattenAnyIgnoreUndefined = (a: any): Array<any> => {
 
   if(!Array.isArray(a)){
