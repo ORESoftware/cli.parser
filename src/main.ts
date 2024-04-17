@@ -664,15 +664,20 @@ export class CliParser<T extends Array<ElemType<any>>> {
 
           try {
             var val = JSON.parse(process.env[o.env]);
+            if (val && 'value' in val) {
+              opts[cleanName] = val.value;
+            } else {
+              opts[cleanName] = val
+            }
           }
           catch (err) {
-            throw `Could not parse env variable with name: '${o.env}', the value was '${process.env[o.env]}': \n${chalk.magenta(err.message || err)}`
+
           }
 
-          if (!('value' in val)) {
-            throw 'You must use an JSON string with a property named "value" in your env variable.'
+          if(!(cleanName in opts)) {
+            opts[cleanName] = process.env[o.env]
           }
-          opts[cleanName] = val.value;
+
         }
         else if ('default' in o) {
 
