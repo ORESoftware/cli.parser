@@ -112,7 +112,7 @@ export const findJSONFiles = (pth: string): object => {
       values.push(require(path.resolve(pth, '.cli.json')))
     } catch (err) {
       if (/parse/i.test(err.message) && !/Cannot find module/i.test(err.message)) {
-        console.error(chalk.magenta(err));
+        console.error("7769fe8b-9186-40b9-b724-eb07ad2f5234",chalk.magenta(err));
       }
     }
 
@@ -168,9 +168,7 @@ export const getSpreadedArray = (v: Array<string>): Array<string> => {
     ret.push(elem);
   }
 
-  console.log({ret});
   return ret;
-
 };
 
 export const wrapString = (n: number, str: string): string => {

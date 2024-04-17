@@ -165,8 +165,7 @@ const checkJSONArray = (v: ElemType<any>, t: string, f?: (v: any) => void) => {
 
   try {
     var e = JSON.parse(process.env[v.env]);
-  }
-  catch (err) {
+  } catch (err) {
     throw `Could not call JSON.parse on ${v.env}, expecting an array.`;
   }
 
@@ -220,8 +219,7 @@ const checkJSONSepArray = (v: ElemType<any>, t: string, f?: (v: any) => void) =>
 
   try {
     var e = JSON.parse(process.env[v.env]);
-  }
-  catch (err) {
+  } catch (err) {
     throw `Could not call JSON.parse on ${v.env}, expecting an array.`;
   }
 
@@ -375,8 +373,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
                 assert(x && 'value' in x, 'JSON must have a "value" key/property.');
                 v[defaultMod] = x.value;
               }
-            }
-            catch (err) {
+            } catch (err) {
               log.error(`Could not call JSON.parse on default property, even though the type is "JSON": ${util.inspect(v)}`);
               throw err.message || err;
             }
@@ -404,8 +401,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         }
 
       }
-    }
-    catch (e) {
+    } catch (e) {
       throw chalk.magenta(e);
     }
   }
@@ -453,8 +449,6 @@ export class CliParser<T extends Array<ElemType<any>>> {
       }
     }
 
-    // const args = getSpreadedArray(argv);
-
     const args = argv.slice(0);
 
     let prev: ParsedValue<any> = null, g: CliParserGroup = null;
@@ -482,17 +476,13 @@ export class CliParser<T extends Array<ElemType<any>>> {
 
         if (prev.type === Type.String || prev.type === Type.ArrayOfString) {
           v = arg.slice(0);
-        }
-        else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
+        } else if (prev.type === Type.Integer || prev.type === Type.ArrayOfInteger) {
           v = Number.parseInt(arg);
-        }
-        else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
+        } else if (prev.type === Type.Number || prev.type === Type.ArrayOfNumber) {
           v = Number.parseFloat(arg);
-        }
-        else if (CliParser.separators.includes(<Type>prev.type)) {
+        } else if (CliParser.separators.includes(<Type>prev.type)) {
           v = fromSepString<typeof prev.type>(arg, prev);
-        }
-        else {
+        } else {
           throw new Error('No type matched. Fallthrough.');
         }
 
@@ -513,7 +503,6 @@ export class CliParser<T extends Array<ElemType<any>>> {
         }
 
         if (name in opts) {
-          console.log({name, ret: opts});
           throw chalk.magenta(`Non-array and non-boolean option was used more than once, the option name is: '${name}'.`);
         }
 
@@ -536,7 +525,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         if (index > -1) {
           let originalArg = arg;
           arg = arg.slice(0, index).trim();
-          value = originalArg.slice(index+1).trim();
+          value = originalArg.slice(index + 1).trim();
           if (arg.length < 1 || value.length < 1) {
             throw `Malformed expression involving equals (=) sign, see: '${originalArg}'`
           }
@@ -561,19 +550,15 @@ export class CliParser<T extends Array<ElemType<any>>> {
 
         const name = getCleanOpt(longOpt.name);
 
-        console.log({name});
-
         if (longOpt.type === Type.Boolean) {
           const val = parseBoolOptimistic(value)
           opts[name] = val;
           order.push({name, value: val, from: 'argv'});
-        }
-        else if (longOpt.type === Type.ArrayOfBoolean) {
+        } else if (longOpt.type === Type.ArrayOfBoolean) {
           const val = parseBoolOptimistic(value)
           opts[name] = flattenAnyIgnoreUndefined([opts[name], val]);
           order.push({name, value: val, from: 'argv'});
-        }
-        else {
+        } else {
           prev = longOpt;
           if (!args[i + 1]) {
             throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(longOpt));
@@ -584,10 +569,8 @@ export class CliParser<T extends Array<ElemType<any>>> {
 
       let c = null;
       const shorties = arg.slice(1).split('');
-      console.log({shorties,arg});
       const shortOpts: Parsed = shorties.reduce((a, b) => (a[b] = shortNameHash[b], a), <Parsed>{});
       const keys = Object.keys(shortOpts);
-      console.log({keys});
 
       g = {};
 
@@ -622,13 +605,11 @@ export class CliParser<T extends Array<ElemType<any>>> {
           const val = parseBoolOptimistic(value)
           opts[originalName] = val;
           order.push({name: originalName, value: val, from: 'argv'});
-        }
-        else if (shortHashVal.type === Type.ArrayOfBoolean) {
+        } else if (shortHashVal.type === Type.ArrayOfBoolean) {
           const val = parseBoolOptimistic(value);
           opts[originalName] = flattenAnyIgnoreUndefined([opts[originalName], val]);
           order.push({name: originalName, value: val, from: 'argv'});
-        }
-        else {
+        } else {
           if (j < keys.length - 1) {
             throw chalk.magenta(`When you group options, only the last option can be non-boolean. The letter that is the problem is: '${k}', in the following group: ${arg}`);
           }
@@ -647,8 +628,7 @@ export class CliParser<T extends Array<ElemType<any>>> {
         if (!args[i + 1]) {
           throw chalk.magenta('Not enough arguments to satisfy: ') + chalk.magenta.bold(JSON.stringify(c));
         }
-      }
-      else {
+      } else {
         groups.push(g);
       }
 
@@ -658,57 +638,49 @@ export class CliParser<T extends Array<ElemType<any>>> {
 
       const cleanName = getCleanOpt(o.name);
 
-      if (!(cleanName in opts)) {
-
-        if (o.env && o.env in process.env) {
-
-          try {
-            var val = JSON.parse(process.env[o.env]);
-            if (val && 'value' in val) {
-              opts[cleanName] = val.value;
-            } else {
-              opts[cleanName] = val
-            }
-          }
-          catch (err) {
-
-          }
-
-          if(!(cleanName in opts)) {
-            opts[cleanName] = process.env[o.env]
-          }
-
-        }
-        else if ('default' in o) {
-
-          // should make a copy of the value, which we do here
-          if (CliParser.separators.includes(<Type>o.type)) {
-            opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
-          }
-          else if (CliParser.arrays.includes(<Type>o.type)) {
-            opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
-          }
-          else if (o.type === Type.JSON) {
-            opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
-          }
-          else {
-            opts[cleanName] = JSON.parse(JSON.stringify(o.default));
-          }
-        }
-        else {
-
-          if (CliParser.arrays.includes(<Type>o.type)) {
-            opts[cleanName] = [];
-          }
-
-          if (CliParser.separators.includes(<Type>o.type)) {
-            opts[cleanName] = [];
-          }
-
-        }
-
+      if (cleanName in opts) {
+        continue;
       }
 
+      if (o.env && o.env in process.env) {
+
+        try {
+          var val = JSON.parse(process.env[o.env]);
+          if (val && 'value' in val) {
+            opts[cleanName] = val.value;
+          } else {
+            opts[cleanName] = val
+          }
+        } catch (err) {
+
+        }
+
+        if (!(cleanName in opts)) {
+          opts[cleanName] = process.env[o.env]
+        }
+
+      } else if ('default' in o) {
+
+        // should make a copy of the value, which we do here
+        if (CliParser.separators.includes(<Type>o.type)) {
+          opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
+        } else if (CliParser.arrays.includes(<Type>o.type)) {
+          opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
+        } else if (o.type === Type.JSON) {
+          opts[cleanName] = JSON.parse(JSON.stringify(o[defaultMod]));
+        } else {
+          opts[cleanName] = JSON.parse(JSON.stringify(o.default));
+        }
+      } else {
+
+        if (CliParser.arrays.includes(<Type>o.type)) {
+          opts[cleanName] = [];
+        }
+
+        if (CliParser.separators.includes(<Type>o.type)) {
+          opts[cleanName] = [];
+        }
+      }
     }
 
 
